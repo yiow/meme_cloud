@@ -20,9 +20,13 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.memecloud.data.model.LoginRequest
+import com.memecloud.data.network.RetrofitClient
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,6 +34,7 @@ fun LoginScreen(
     onLoginSuccess: () -> Unit,
     onGoRegister: () -> Unit
 ) {
+    val scope = rememberCoroutineScope()
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
@@ -134,10 +139,22 @@ fun LoginScreen(
                 }
                 isLoading = true
                 errorMessage = null
-                // TODO: 后续接入 AuthApi.login()
-                // 当前使用模拟登录
-                isLoading = false
-                onLoginSuccess()
+                scope.launch {
+                    try {
+                        val response = withContext(Dispatchers.IO) {
+                            RetrofitClient.authApi.login(LoginRequest(username, password))
+                        }
+                        if (response.isSuccess && response.data != null) {
+                            onLoginSuccess()
+                        } else {
+                            errorMessage = response.msg.ifBlank { "登录失败" }
+                        }
+                    } catch (e: Exception) {
+                        errorMessage = "网络连接失败，请检查后端是否启动"
+                    } finally {
+                        isLoading = false
+                    }
+                }
             },
             modifier = Modifier
                 .fillMaxWidth()

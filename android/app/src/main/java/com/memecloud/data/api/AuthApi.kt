@@ -1,9 +1,9 @@
 package com.memecloud.data.api
 
 import com.memecloud.data.model.ApiResponse
+import com.memecloud.data.model.AuthData
 import com.memecloud.data.model.LoginRequest
 import com.memecloud.data.model.RegisterRequest
-import com.memecloud.data.model.User
 import retrofit2.http.Body
 import retrofit2.http.POST
 
@@ -13,8 +13,8 @@ import retrofit2.http.POST
 interface AuthApi {
 
     @POST("api/auth/login")
-    suspend fun login(@Body request: LoginRequest): ApiResponse<User>
+    suspend fun login(@Body request: LoginRequest): ApiResponse<AuthData>
 
     @POST("api/auth/register")
-    suspend fun register(@Body request: RegisterRequest): ApiResponse<User>
+    suspend fun register(@Body request: RegisterRequest): ApiResponse<AuthData>
 }

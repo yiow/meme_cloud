@@ -21,6 +21,11 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.memecloud.data.model.RegisterRequest
+import com.memecloud.data.network.RetrofitClient
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,6 +33,7 @@ fun RegisterScreen(
     onRegisterSuccess: () -> Unit,
     onGoBack: () -> Unit
 ) {
+    val scope = rememberCoroutineScope()
     var username by remember { mutableStateOf("") }
     var nickname by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -160,6 +166,7 @@ fun RegisterScreen(
         // ── 注册按钮 ──
         Button(
             onClick = {
+                // 本地校验
                 when {
                     username.isBlank() || password.isBlank() || confirmPassword.isBlank() -> {
                         errorMessage = "请填写所有必填项"
@@ -176,9 +183,28 @@ fun RegisterScreen(
                 }
                 isLoading = true
                 errorMessage = null
-                // TODO: 后续接入 AuthApi.register()
-                isLoading = false
-                onRegisterSuccess()
+                scope.launch {
+                    try {
+                        val response = withContext(Dispatchers.IO) {
+                            RetrofitClient.authApi.register(
+                                RegisterRequest(
+                                    username = username,
+                                    password = password,
+                                    nickname = nickname.ifBlank { username }
+                                )
+                            )
+                        }
+                        if (response.isSuccess && response.data != null) {
+                            onRegisterSuccess()
+                        } else {
+                            errorMessage = response.msg.ifBlank { "注册失败" }
+                        }
+                    } catch (e: Exception) {
+                        errorMessage = "网络连接失败，请检查后端是否启动"
+                    } finally {
+                        isLoading = false
+                    }
+                }
             },
             modifier = Modifier
                 .fillMaxWidth()
@@ -186,7 +212,14 @@ fun RegisterScreen(
             shape = RoundedCornerShape(12.dp),
             enabled = !isLoading
         ) {
-            Text("注  册", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            } else {
+                Text("注  册", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            }
         }
 
         Spacer(Modifier.height(40.dp))

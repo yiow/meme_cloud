@@ -1,2 +1,91 @@
-.claude
-.idea
+# ═══════════════════════════════════════════════════
+#  表情云库 — .gitignore
+#  明确哪些文件上传、哪些不传
+# ═══════════════════════════════════════════════════
+
+# ── IDE（每人 IDE 配置不同，不提交）─────────────
+.idea/
+*.iml
+.claude/
+
+# ── Gradle ────────────────────────────────────────
+# 构建缓存和输出 — 不提交（自动生成）
+.gradle/
+build/
+**/build/
+android/.gradle/
+android/**/build/
+
+# 本地 SDK 路径 — 每人不同，不提交
+local.properties
+android/local.properties
+
+# ── Android ───────────────────────────────────────
+# 编译产物
+*.apk
+*.aab
+*.dex
+*.class
+*.ap_
+*.aab_
+
+# 签名密钥 — 绝对不能泄露！
+*.jks
+*.keystore
+*.keystore.properties
+
+# Native 构建
+.externalNativeBuild/
+.cxx/
+*.o
+*.so
+
+# 测试报告
+**/test-results/
+**/reports/
+
+# ProGuard
+proguard/
+
+# 截图
+captures/
+
+# ── OS 系统文件 ──────────────────────────────────
+.DS_Store
+Thumbs.db
+*~
+*.swp
+*.swo
+
+# ── Python（后端）─────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+venv/
+env/
+.venv/
+*.egg
+
+# ── 环境变量 / 密钥 ──────────────────────────────
+.env
+.env.*
+*.secret
+secrets/
+
+# ── 日志 ──────────────────────────────────────────
+*.log
+logs/
+
+# ── 临时文件 ─────────────────────────────────────
+*.tmp
+*.temp
+*.bak
+*~
+~$*
+
+# ── 压缩包 ───────────────────────────────────────
+*.zip
+*.tar.gz
+*.rar
+*.7z

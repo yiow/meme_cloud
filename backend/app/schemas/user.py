@@ -1,5 +1,7 @@
 """Pydantic 请求/响应模型"""
 
+from typing import Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -22,9 +24,9 @@ class UserBrief(BaseModel):
     """用户简要信息（不暴露密码）"""
     id: int
     username: str
-    nickname: str | None
-    avatar_url: str | None
-    bio: str | None
+    nickname: Optional[str] = None
+    avatar_url: Optional[str] = None
+    bio: Optional[str] = None
     points: int
     follower_count: int
     following_count: int
@@ -40,4 +42,4 @@ class ApiResponse(BaseModel):
     """通用 API 响应"""
     code: int = 0
     msg: str = "ok"
-    data: dict | None = None
+    data: Optional[dict] = None

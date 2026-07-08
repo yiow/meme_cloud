@@ -1,5 +1,7 @@
 """用户业务逻辑"""
 
+from typing import Optional
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -20,7 +22,6 @@ class DuplicateUserError(Exception):
 
 def register_user(db: Session, username: str, nickname: str, password: str) -> AuthResponse:
     """注册新用户"""
-    # 查重
     stmt = select(User).where(User.username == username)
     existing = db.execute(stmt).scalar_one_or_none()
     if existing:
@@ -51,7 +52,7 @@ def login_user(db: Session, username: str, password: str) -> AuthResponse:
     return AuthResponse(token=token, user=_to_brief(user))
 
 
-def get_user_by_id(db: Session, user_id: int) -> User | None:
+def get_user_by_id(db: Session, user_id: int) -> Optional[User]:
     return db.get(User, user_id)
 
 

@@ -1,6 +1,7 @@
 """安全模块 — bcrypt 密码哈希 + JWT 签发/校验"""
 
 from datetime import datetime, timedelta, timezone
+from typing import Optional
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -29,7 +30,7 @@ def create_access_token(user_id: int, username: str) -> str:
     return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 
-def decode_access_token(token: str) -> dict | None:
+def decode_access_token(token: str) -> Optional[dict]:
     try:
         return jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
     except JWTError:

@@ -96,12 +96,27 @@ def _euclidean(a: list[float], b: list[float]) -> float:
     return math.sqrt(sum((x - y) ** 2 for x, y in zip(a, b)))
 
 
+def _find_best_pool_match(label: str, pool: dict) -> str | None:
+    """在 pool 中查找最匹配的标签 key（处理自定义标签名与 pool key 不完全一致的情况）"""
+    if label in pool:
+        return label
+    # 模糊匹配：取 pool 中与 label 共享最多字符的 key
+    best_key, best_score = None, 0
+    for key in pool:
+        score = len(set(label) & set(key))
+        if score > best_score:
+            best_score = score
+            best_key = key
+    return best_key
+
+
 def classify(feature: list[float], mode: str = "gesture") -> dict:
     """
     KNN 分类
 
     Returns:
-        {"label": str, "image_url": str | None, "confidence": float, "is_neutral": bool}
+        {"label": str, "image_url": str | None,
+         "images": list[str], "confidence": float, "is_neutral": bool}
     """
     samples = _all_samples(mode)
     threshold = EXPR_THRESHOLD if mode == "expr" else GESTURE_THRESHOLD
@@ -115,12 +130,13 @@ def classify(feature: list[float], mode: str = "gesture") -> dict:
         return {
             "label": f"[DEMO] {demo_label}",
             "image_url": candidates[0] if candidates else None,
+            "images": candidates,
             "confidence": 0.99,
             "is_neutral": False,
         }
 
     if not samples or not feature:
-        return {"label": None, "image_url": None, "confidence": 0, "is_neutral": True}
+        return {"label": None, "image_url": None, "images": [], "confidence": 0, "is_neutral": True}
 
     distances = []
     for label, vec in samples:
@@ -129,41 +145,45 @@ def classify(feature: list[float], mode: str = "gesture") -> dict:
         d = _euclidean(feature, vec)
         distances.append((d, label))
 
-    # 无有效距离 → demo fallback
+    # 无有效距离 → 返回空
     if not distances:
-        import random as _random2
-        demo_label = _random2.choice(list(pool.keys()))
-        candidates = pool.get(demo_label, [])
-        return {
-            "label": f"[DEMO] {demo_label}",
-            "image_url": candidates[0] if candidates else None,
-            "confidence": 0.99,
-            "is_neutral": False,
-        }
+        if pool:
+            import random as _random2
+            demo_label = _random2.choice(list(pool.keys()))
+            candidates = pool.get(demo_label, [])
+            return {
+                "label": f"[DEMO] {demo_label}",
+                "image_url": candidates[0] if candidates else None,
+                "images": candidates,
+                "confidence": 0.99,
+                "is_neutral": False,
+            }
+        return {"label": None, "image_url": None, "images": [], "confidence": 0, "is_neutral": True}
 
     distances.sort(key=lambda x: x[0])
 
-    # 最近距离超过阈值 → 选 closest 而非直接 neutral
+    # 最近距离超过阈值 → 返回最近标签（标记为不精确匹配）
     if distances[0][0] > threshold:
-        # 没有样本时返回最近的那个（比 neutral 有用）
         nearest_label = distances[0][1]
-        candidates = pool.get(nearest_label, [])
-        if not candidates and pool:
-            import random as _random3
-            nearest_label = _random3.choice(list(pool.keys()))
-            candidates = pool.get(nearest_label, [])
+        pool_key = _find_best_pool_match(nearest_label, pool)
+        candidates = pool.get(pool_key, []) if pool_key else []
+        # 如果 pool 中找不到对应标签，列出 top-3 供参考
+        alt_labels = [lab for _, lab in distances[:3]]
         return {
-            "label": f"≈{nearest_label}",
+            "label": nearest_label,
             "image_url": candidates[0] if candidates else None,
+            "images": candidates,
             "confidence": round(1.0 / (1.0 + distances[0][0]), 2),
             "is_neutral": False,
+            "low_confidence": True,
+            "alternatives": alt_labels,
         }
 
-    # neutral 优先判定：nearest neutral is closer than nearest gesture * 1.3
+    # neutral 优先判定
     d_neutral = next((d for d, lab in distances if lab == "neutral"), None)
     d_gesture = next((d for d, lab in distances if lab != "neutral"), None)
     if d_neutral is not None and (d_gesture is None or d_neutral <= d_gesture * 1.3):
-        return {"label": None, "image_url": None, "confidence": 0, "is_neutral": True}
+        return {"label": None, "image_url": None, "images": [], "confidence": 0, "is_neutral": True}
 
     # 投票（前 k 个）
     counter = Counter()
@@ -172,18 +192,26 @@ def classify(feature: list[float], mode: str = "gesture") -> dict:
 
     best_label, best_count = counter.most_common(1)[0]
 
-    # 选一张随机图片
+    # 获取标签对应图片 — 优先精确匹配，其次模糊匹配
     candidates = pool.get(best_label, [])
-    # 标签不在 pool 中（如 test_gesture）→ 随机回退
-    if not candidates and pool:
-        import random as _random3
-        best_label = _random3.choice(list(pool.keys()))
-        candidates = pool.get(best_label, [])
-    image_url = candidates[hash(best_label) % len(candidates)] if candidates else None
+    if not candidates:
+        pool_key = _find_best_pool_match(best_label, pool)
+        if pool_key:
+            candidates = pool.get(pool_key, [])
+            best_label = pool_key
+        elif pool:
+            # 最终兜底：选 KNN 里第一个能在 pool 中匹配到的标签
+            for _, label in distances[:K]:
+                fallback_key = _find_best_pool_match(label, pool)
+                if fallback_key:
+                    best_label = fallback_key
+                    candidates = pool.get(fallback_key, [])
+                    break
 
     return {
         "label": best_label,
-        "image_url": image_url,
+        "image_url": candidates[0] if candidates else None,
+        "images": candidates,
         "confidence": round(best_count / K, 2),
         "is_neutral": False,
     }
@@ -210,3 +238,36 @@ def get_labels(mode: str) -> list[dict]:
     for key, images in pool.items():
         result.append({"label": key, "images": images})
     return result
+
+
+def register_custom_label(mode: str, label: str, image_filename: str):
+    """将自定义标签注册到 meme-labels.json 并更新内存中的 pool"""
+    global LABELS, GESTURE_POOL, EXPR_POOL
+    label_entry = {"key": label, "label": label, "assets": [f"memes/{image_filename}"], "note": "用户自定义"}
+    if mode == "expr":
+        LABELS.setdefault("expression", []).append(label_entry)
+        EXPR_POOL[label] = [f"/static/memes/{image_filename}"]
+    else:
+        LABELS.setdefault("gesture", []).append(label_entry)
+        GESTURE_POOL[label] = [f"/static/memes/{image_filename}"]
+    _save_json(MEME_DIR / "meme-labels.json", LABELS)
+
+
+def search_labels(query: str, mode: str = "gesture") -> list[dict]:
+    """按关键词搜索标签，返回匹配的表情包列表"""
+    pool = EXPR_POOL if mode == "expr" else GESTURE_POOL
+    query_lower = query.strip().lower()
+    if not query_lower:
+        return []
+    results = []
+    for key, images in pool.items():
+        # 匹配 key 或 label（中文名）
+        item = next((i for i in LABELS.get(mode, []) if i["key"] == key), None)
+        label_name = item["label"] if item else key
+        if query_lower in key.lower() or query_lower in label_name:
+            results.append({
+                "label": label_name,
+                "key": key,
+                "images": images,
+            })
+    return results

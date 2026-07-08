@@ -60,6 +60,24 @@ def camera_snapshot(mode: str = Form("gesture")):
     return ApiResponse(msg="ok", data=result)
 
 
+@router.post("/camera/record")
+def camera_record(
+    label: str = Form(...),
+    mode: str = Form("gesture"),
+):
+    """拍照录制自定义标签 — 抓帧 → 提特征 → 存样本"""
+    frame = webcam_service.get_latest_frame()
+    if frame is None:
+        return ApiResponse(code=1, msg="摄像头未就绪")
+
+    features = mediapipe_extractor.extract_gesture_features(frame)
+    if features is None:
+        return ApiResponse(code=1, msg="未检测到人体姿态")
+
+    matcher.record_sample(mode, label, [features])
+    return ApiResponse(msg="ok", data={"label": label, "samples_recorded": 1})
+
+
 @router.post("/gesture", response_model=ApiResponse)
 def match_gesture(req: MatchRequest):
     """手势匹配 — 传入 22 维特征向量，返回最匹配的表情包"""
@@ -90,6 +108,13 @@ def get_labels(mode: str = "gesture"):
     """获取可匹配的标签列表（手势 or 表情）"""
     labels = matcher.get_labels(mode)
     return ApiResponse(msg="ok", data=labels)
+
+
+@router.get("/search", response_model=ApiResponse)
+def search_labels(q: str = "", mode: str = "gesture"):
+    """按关键词搜索标签，返回匹配的表情包"""
+    results = matcher.search_labels(q, mode)
+    return ApiResponse(msg="ok", data=results)
 
 
 @router.post("/record", response_model=ApiResponse)

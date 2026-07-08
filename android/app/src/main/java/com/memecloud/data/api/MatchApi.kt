@@ -23,8 +23,15 @@ data class MatchRequest(
 data class MatchResult(
     val label: String?,
     val image_url: String?,
+    val images: List<String>?,    // 该标签的全部图片
     val confidence: Double,
     val is_neutral: Boolean
+)
+
+data class SearchResult(
+    val label: String,
+    val key: String,
+    val images: List<String>
 )
 
 data class LabelItem(
@@ -56,6 +63,12 @@ interface MatchApi {
     @GET("api/match/labels")
     suspend fun getLabels(@Query("mode") mode: String = "gesture"): ApiResponse<List<LabelItem>>
 
+    @GET("api/match/search")
+    suspend fun searchLabels(
+        @Query("q") query: String,
+        @Query("mode") mode: String = "gesture"
+    ): ApiResponse<List<SearchResult>>
+
     @POST("api/match/record")
     suspend fun record(@Body request: RecordRequest): ApiResponse<Map<String, Any?>>
 
@@ -69,4 +82,11 @@ interface MatchApi {
 
     @GET("api/match/camera/status")
     suspend fun cameraStatus(): ApiResponse<Map<String, Any?>>
+
+    @FormUrlEncoded
+    @POST("api/match/camera/record")
+    suspend fun cameraRecord(
+        @Field("label") label: String,
+        @Field("mode") mode: String = "gesture"
+    ): ApiResponse<Map<String, Any?>>
 }

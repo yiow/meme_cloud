@@ -93,12 +93,14 @@ fun BattleRoomScreen(roomId: String, roomName: String, onBack: () -> Unit) {
 
             // 弹幕动画
             messages.forEach { msg ->
-                AnimatedBarrage(
-                    msg = msg,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = (msg.yOffset * 400).dp)
-                )
+                key(msg.id) {
+                    AnimatedBarrage(
+                        msg = msg,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = (msg.yOffset * 400).dp)
+                    )
+                }
             }
         }
 
@@ -148,8 +150,8 @@ private fun AnimatedBarrage(msg: BarrageMsg, modifier: Modifier) {
     LaunchedEffect(msg.id) {
         offsetX.snapTo(1000f)
         offsetX.animateTo(
-            targetValue = -200f,
-            animationSpec = tween(durationMillis = 6000, easing = LinearEasing)
+            targetValue = -2000f,
+            animationSpec = tween(durationMillis = 12000, easing = LinearEasing)
         )
     }
 

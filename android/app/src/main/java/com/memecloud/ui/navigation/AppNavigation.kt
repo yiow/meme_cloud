@@ -112,7 +112,7 @@ fun AppNavigation(
             composable(Screen.Battle.route) {
                 BattleScreen(
                     onEnterRoom = { roomId, roomName ->
-                        navController.navigate("${Routes.BATTLE_ROOM}/$roomId/$roomName")
+                        navController.navigate(Routes.battleRoom(roomId, roomName))
                     },
                     onGoContest = { navController.navigate(Routes.IMITATION_CONTEST) }
                 )

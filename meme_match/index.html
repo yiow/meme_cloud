@@ -1,0 +1,641 @@
+﻿<!--
+  ============================================================
+  GESTO 98  ·  手势表情包
+  Replicated from https://www.gestomeme.com/
+  ============================================================
+-->
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GESTO 98</title>
+<link rel="stylesheet" href="https://unpkg.com/98.css">
+<style>
+  html,body{ margin:0; height:100%; overflow:hidden; background:#008080;
+    font-family:"Pixelated MS Sans Serif",Tahoma,sans-serif; }
+  img{ image-rendering:pixelated; }
+  .win{ position:absolute; box-shadow:3px 3px 7px rgba(0,0,0,.45); }
+  .title-bar-text{ display:flex; align-items:center; gap:6px; }
+  .tbico{ width:16px; height:16px; }
+  canvas{ display:block; background:#000; }
+  #camWrap{ width:420px; height:315px; overflow:hidden; display:flex; align-items:center; justify-content:center; background:#000; }
+  #lienzo{ width:100%; height:auto; }
+  #memeBody{ width:420px; height:315px; display:flex; align-items:center; justify-content:center;
+    background:#fff; overflow:hidden; position:relative; }
+  #saveMeme{ position:absolute; top:6px; right:6px; display:none; z-index:3; font-size:12px; }
+  #meme{ max-width:100%; max-height:100%; display:none; image-rendering:auto; }
+  #memeHint{ color:#555; font-size:12px; text-align:center; padding:20px; }
+  #etiqueta{ position:absolute; top:34px; left:12px; background:rgba(0,0,0,.6); color:#7fffd4;
+    padding:2px 10px; font-weight:bold; font-size:16px; }
+  .row{ display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap; }
+  #prev{ width:48px; height:48px; object-fit:cover; border:1px solid #555; display:none; image-rendering:auto; }
+  #grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-height:180px;
+    overflow:auto; padding:4px; background:#fff; border:1px inset #888; }
+  .card{ text-align:center; font-size:11px; }
+  .card img{ width:100%; height:56px; object-fit:cover; border:1px solid #999; image-rendering:auto; }
+  .card .note{ display:block; color:#444; font-size:10px; line-height:1.25; margin:2px 0; }
+  .card .del{ color:#00a; cursor:pointer; text-decoration:underline; }
+  .card .reg{ color:#080; cursor:pointer; text-decoration:underline; font-size:10px; }
+  .card .clr{ color:#a00; cursor:pointer; text-decoration:underline; font-size:10px; }
+  #escritorio{ position:absolute; top:8px; left:8px; display:flex; flex-direction:column; gap:14px; z-index:1; }
+  .dicon{ width:76px; text-align:center; color:#fff; font-size:11px; cursor:pointer;
+    text-shadow:1px 1px 1px #000; user-select:none; padding:3px; }
+  .dicon img{ width:32px; height:32px; display:block; margin:0 auto 3px; }
+  .dicon:hover{ background:rgba(0,0,128,.35); outline:1px dotted #fff; }
+  #taskbar{ position:fixed; bottom:0; left:0; right:0; height:30px; background:#c0c0c0;
+    border-top:2px solid #fff; display:flex; align-items:center; padding:0 4px; gap:6px; z-index:9999; }
+  #startBtn{ font-weight:bold; display:flex; align-items:center; gap:5px; }
+  #startBtn img{ width:18px; height:18px; }
+  #clock{ margin-left:auto; border:1px inset #888; padding:3px 10px; font-size:12px; }
+  #tbItems{ display:flex; gap:4px; } #tbItems .button{ font-size:11px; }
+  #tbItems .tbe{ margin-right:3px; }
+  body.mob #tbItems .button > span:not(.tbe){ display:none; }
+  body.mob #tbItems .tbe{ margin-right:0; }
+  #clippy{ position:fixed; right:22px; bottom:40px; width:124px; height:93px;
+    background:url(icons/clippy.png) 0 0 no-repeat; z-index:9998; cursor:pointer;
+    animation:clipFloat 3s ease-in-out infinite; }
+  @keyframes clipFloat{ 0%,100%{transform:translateY(0) rotate(-1deg)} 50%{transform:translateY(-7px) rotate(1deg)} }
+  #bubble{ position:fixed; right:150px; bottom:96px; background:#ffffe0; border:2px solid #000;
+    padding:7px 11px; font-size:12px; z-index:9998; max-width:170px; border-radius:8px 8px 0 8px;
+    box-shadow:2px 2px 3px rgba(0,0,0,.3); display:none; }
+  #startMenu{ position:fixed; bottom:30px; left:4px; width:212px; background:#c0c0c0;
+    border:2px outset #fff; z-index:10000; display:none; box-shadow:3px 3px 6px rgba(0,0,0,.4); }
+  #startMenu .bar{ position:absolute; left:0; top:0; bottom:0; width:26px; background:linear-gradient(#000080,#1084d0); }
+  #startMenu .bar span{ position:absolute; bottom:8px; left:3px; writing-mode:vertical-rl; transform:rotate(180deg);
+    color:#fff; font-weight:bold; font-size:15px; letter-spacing:2px; }
+  #startMenu ul{ list-style:none; margin:0 0 0 26px; padding:3px; }
+  #startMenu li{ padding:6px 10px; cursor:pointer; font-size:13px; }
+  #startMenu li:hover{ background:#000080; color:#fff; }
+  #langBtn{ position:fixed; top:6px; right:10px; z-index:10001; font-weight:bold; }
+  #privacyGate{ position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:100000;
+    display:flex; align-items:center; justify-content:center; padding:12px; }
+  #privacyGate .window{ width:360px; max-width:calc(100vw - 24px); }
+  #privacyGate .window-body{ font-size:12px; line-height:1.55; }
+  .resizer{ position:absolute; right:0; bottom:0; width:16px; height:16px; cursor:nwse-resize;
+    touch-action:none; z-index:6;
+    background:linear-gradient(135deg, transparent 0 46%, #707070 46% 54%, transparent 54% 64%, #707070 64% 72%, transparent 72% 82%, #707070 82% 90%, transparent 90%); }
+  .title-bar{ touch-action:none; }
+  #clippy{ touch-action:none; }
+  .win{ transition:left .2s ease, top .2s ease, width .2s ease; }
+  #lienzo, #memeBody{ transition:width .2s ease, height .2s ease; }
+  .win.dragging, .win.dragging *{ transition:none !important; }
+  body.mob #escritorio{ display:none; }
+  body.mob #langBtn{ left:8px; right:auto; }
+  body.mob #winMeme > .window-body{ overflow:hidden; }
+  body.mob #winMeme #libBody{ overflow-y:auto; -webkit-overflow-scrolling:touch; }
+  body.mob #libBody{ margin:4px 0 0; padding:4px 4px 3px; border-top:2px groove #dfdfdf; }
+  body.mob #grid{ max-height:none; gap:5px; padding:3px; grid-template-columns:repeat(4,1fr); }
+  body.mob .card{ font-size:10px; }
+  body.mob .card img{ height:46px; }
+  body.mob .row{ margin-bottom:4px; }
+  body.mob #estado2{ min-height:0; margin:0 0 2px; }
+  body.mob #winLoad{ width:auto !important; max-width:calc(100vw - 16px); }
+</style>
+</head>
+<body>
+
+<div id="escritorio">
+  <div class="dicon" data-open="winCam"><img src="icons/computer.png"><span data-en="My Computer">我的电脑</span></div>
+  <div class="dicon" data-open="winMeme"><img src="icons/meme.png"><span data-en="Memes">表情包</span></div>
+  <div class="dicon" data-open="winLib"><img src="icons/folder.png"><span data-en="My Memes">我的表情包</span></div>
+  <div class="dicon"><img src="icons/ie.png"><span data-en="Internet">IE 浏览器</span></div>
+  <div class="dicon"><img src="icons/recycle.png"><span data-en="Recycle Bin">回收站</span></div>
+  <div class="dicon" id="icoHelp"><img src="icons/help.png"><span data-en="Help">帮助</span></div>
+</div>
+
+<div class="window win" id="winCam" style="left:120px; top:18px;">
+  <div class="title-bar"><div class="title-bar-text"><img src="icons/cam.png" class="tbico"><span data-en="Webcam">摄像头</span></div>
+    <div class="title-bar-controls"><button aria-label="Minimize"></button><button aria-label="Maximize"></button><button aria-label="Close"></button></div></div>
+  <div class="window-body" style="margin:0; padding:3px;">
+    <div id="camWrap"><canvas id="lienzo" width="420" height="315"></canvas></div>
+    <div id="etiqueta" data-en="Loading...">载入中...</div>
+    <div class="row" style="margin:4px 2px 2px; gap:8px;">
+      <button class="button" id="modeBtn">😀 表情模式</button>
+      <label style="font-size:11px; display:flex; align-items:center; gap:4px; flex:1;">🔍<input type="range" id="zoom" min="1" max="3" step="0.1" value="1" style="flex:1;"></label>
+    </div>
+  </div>
+</div>
+
+<div class="window win" id="winMeme" style="left:565px; top:18px;">
+  <div class="title-bar"><div class="title-bar-text"><img src="icons/meme.png" class="tbico"><span data-en="Memes">表情包</span></div>
+    <div class="title-bar-controls"><button aria-label="Minimize"></button><button aria-label="Maximize"></button><button aria-label="Close"></button></div></div>
+  <div class="window-body" style="margin:0; padding:3px;">
+    <div id="memeBody"><img id="meme" alt="meme"><button class="button" id="saveMeme" data-en="💾 Save">💾 保存</button><div id="memeHint" data-en="Your meme appears here 👋">表情包会出现在这里 👋</div></div>
+  </div>
+</div>
+
+<div class="window win" id="winLib" style="left:565px; top:360px; width:420px;">
+  <div class="title-bar"><div class="title-bar-text"><img src="icons/folder.png" class="tbico"><span data-en="My Memes">我的表情包</span></div>
+    <div class="title-bar-controls"><button aria-label="Close"></button></div></div>
+  <div class="window-body" id="libBody">
+    <div class="row"><input type="file" id="file" accept="image/*" style="display:none"><button class="button" id="fileBtn" data-en="📁 Choose image">📁 选择图片</button><img id="prev" alt=""></div>
+    <div class="row"><input type="text" id="nombre" placeholder="起个名字" data-en-ph="Name it" style="flex:1;"><button class="button" id="grabarBtn">● 录制手势</button></div>
+    <div class="row"><button class="button" id="neutralBtn" style="width:100%;" data-en="🧘 Add 'Neutral' (relaxed look)">🧘 补录「中性/放松」(没做手势的样子)</button></div>
+    <div class="row"><button class="button" id="exportBtn" style="width:100%;" data-en="💾 Export my data (for publishing)">💾 导出我的数据(发布到网站用)</button></div>
+    <div id="estado2" style="font-size:11px; color:#00a; min-height:14px; margin-bottom:6px;"></div>
+    <div id="grid"></div>
+  </div>
+</div>
+
+<div class="window win" id="winLoad" style="left:120px; top:700px; width:420px;">
+  <div class="title-bar"><div class="title-bar-text"><img src="icons/help.png" class="tbico"><span data-en="Privacy">隐私说明</span></div>
+    <div class="title-bar-controls"><button aria-label="Close"></button></div></div>
+  <div class="window-body">
+    <div style="margin:6px; font-size:12px; line-height:1.55;">
+      <p style="margin:0 0 6px; font-weight:bold;" data-en="🔒 Your privacy">🔒 隐私说明</p>
+      <p style="margin:0 0 5px;" data-en="This is a pure front-end site - no backend, no server, no database.">这是一个纯前端小网站,没有后端、没有服务器、没有数据库。</p>
+      <p style="margin:0 0 5px;" data-en="Your camera feed is processed only inside your own browser - nothing is uploaded, and we can't see or access it.">你的摄像头画面只在你自己的浏览器里处理,不会上传到任何地方,我们也看不到、拿不到。</p>
+      <p style="margin:0 0 5px;" data-en="The gestures / expressions you train and images you upload live only in your device's local cache (gone if you switch devices or clear it).">你训练的手势/表情、上传的图片,只存在你这台设备的本地缓存里(换设备或清缓存就没了)。</p>
+      <p style="margin:0;" data-en="This site does not collect, store, or upload any of your personal or facial data.">本网站不收集、不储存、不上传任何您的个人信息或面部信息。</p>
+    </div>
+    <p id="estado" style="margin:6px; font-size:11px; color:#008080; border-top:1px solid #ccc; padding-top:5px;" data-en="Loading model... (a few MB the first time)">正在加载模型...(第一次下载几 MB)</p>
+  </div>
+</div>
+
+<div id="taskbar">
+  <button class="button" id="startBtn"><img src="icons/start.png"><span data-en="Start">开始</span></button>
+  <div id="tbItems"><button class="button"><span class="tbe">📷</span><span data-en="Webcam">摄像头</span></button><button class="button"><span class="tbe">😆</span><span data-en="Memes">表情包</span></button><button class="button"><span class="tbe">🔒</span><span data-en="Privacy">隐私</span></button></div>
+  <div id="clock">00:00</div>
+</div>
+
+<button class="button" id="langBtn">EN</button>
+
+<div id="bubble"></div>
+<div id="clippy" title="点我" data-en-title="click me"></div>
+
+<div id="privacyGate">
+  <div class="window">
+    <div class="title-bar"><div class="title-bar-text"><img src="icons/help.png" class="tbico"><span data-en="Privacy">隐私说明</span></div></div>
+    <div class="window-body">
+      <p style="margin:0 0 8px; font-weight:bold; font-size:13px;" data-en="🔒 Before you start">🔒 开始前,请了解</p>
+      <p style="margin:0 0 5px;" data-en="This is a pure front-end site - no backend, no server, no database.">这是一个纯前端小网站,没有后端、没有服务器、没有数据库。</p>
+      <p style="margin:0 0 5px;" data-en="Your camera feed is processed only inside your own browser - nothing is uploaded, and we can't see or access it.">你的摄像头画面只在你自己的浏览器里处理,不会上传到任何地方,我们也看不到、拿不到。</p>
+      <p style="margin:0 0 5px;" data-en="What you train and the images you upload live only in your device's local cache.">你训练的手势/表情、上传的图片,只存在你这台设备的本地缓存里。</p>
+      <p style="margin:0 0 12px;" data-en="This site does not collect, store, or upload any of your personal or facial data.">本网站不收集、不储存、不上传任何您的个人信息或面部信息。</p>
+      <div style="text-align:center;"><button class="button" id="privacyOkBtn" style="padding:5px 26px; font-weight:bold;" data-en="✔ Got it - let's play">✔ 知道了,开始玩</button></div>
+    </div>
+  </div>
+</div>
+
+<div id="startMenu">
+  <div class="bar"><span>GESTO 98</span></div>
+  <ul>
+    <li data-act="reabrir" data-en="🪟 Show all windows">🪟 显示所有窗口</li>
+    <li data-act="lib" data-en="🗂️ My Memes">🗂️ 我的表情包</li>
+    <li data-act="ayuda" data-en="💡 How to play">💡 怎么玩</li>
+    <li data-act="acerca" data-en="ℹ️ About GESTO 98">ℹ️ 关于 GESTO 98</li>
+    <li data-act="privacidad" data-en="🔒 Privacy">🔒 隐私说明</li>
+  </ul>
+</div>
+
+<script type="module">
+let FilesetResolver, PoseLandmarker, HandLandmarker, FaceLandmarker;
+const VISION_BUNDLE_URL="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
+
+let NOMBRES = { neutral:"中性" };
+let NOMBRES_EN = { neutral:"neutral" };
+let LANG = localStorage.getItem("gesto_lang") || "zh";
+const L = (zh,en)=> LANG==="en" ? en : zh;
+let BUILTIN_POOLS = { neutral:[] };
+let EXPR_POOL = {};
+let NOMBRES_EXPR = {};
+let NOMBRES_EXPR_EN = {};
+let MEME_NOTES = {};
+let MEME_NOTES_EN = MEME_NOTES;
+let LABELS_READY = false;
+const ASSET_ALIASES={
+  "memes/雨姐-双手抱胸-微笑.png":"memes/雨姐-环臂-微笑.png"
+};
+function cleanAssetPath(path){
+  const p=String(path||"").replace(/^\.\//,"").replace(/^test2\//,"");
+  return ASSET_ALIASES[p] || p;
+}
+function normalizeCustomAssets(c){
+  for(const d of Object.values(c||{})) if(d&&d.img) d.img=cleanAssetPath(d.img);
+  return c||{};
+}
+function applyLabelList(items, names, namesEn, pool){
+  for(const item of items || []){
+    const key=String(item.key||item.label||"").trim();
+    if(!key) continue;
+    const label=String(item.label||key).trim();
+    names[key]=label;
+    namesEn[key]=label;
+    pool[key]=(item.assets||[]).map(cleanAssetPath).filter(Boolean);
+    if(item.note) MEME_NOTES[key]=String(item.note);
+    else delete MEME_NOTES[key];
+  }
+}
+async function loadMemeLabels(){
+  if(LABELS_READY) return;
+  try{
+    const labels=await (await fetch("meme-labels.json", {cache:"no-store"})).json();
+    NOMBRES={ neutral:"中性" };
+    NOMBRES_EN={ neutral:"neutral" };
+    BUILTIN_POOLS={ neutral:[] };
+    EXPR_POOL={};
+    NOMBRES_EXPR={};
+    NOMBRES_EXPR_EN={};
+    MEME_NOTES={};
+    applyLabelList(labels.gesture, NOMBRES, NOMBRES_EN, BUILTIN_POOLS);
+    applyLabelList(labels.expression, NOMBRES_EXPR, NOMBRES_EXPR_EN, EXPR_POOL);
+    MEME_NOTES_EN=MEME_NOTES;
+    LABELS_READY=true;
+  }catch(e){
+    console.error(e);
+    estado2.textContent=L("⚠ meme-labels.json 读取失败，表情包列表无法生成","⚠ Failed to load meme-labels.json");
+  }
+}
+const LS_KEY="gesto_custom_v1", EXPR_KEY="gesto_expr_v1";
+let MODE="gesto";
+const curKey=()=> MODE==="expr" ? EXPR_KEY : LS_KEY;
+function loadJSON(k){ try{return JSON.parse(localStorage.getItem(k)||"{}");}catch{return {};} }
+function saveCustom(c){ try{ localStorage.setItem(curKey(), JSON.stringify(c)); return true; }
+  catch(e){ alert(L("浏览器存储满了!样本太多存不下。\n建议:给手势少录几次,或点 clear 清掉一些重录。","Browser storage is full! Too many samples.\nRecord fewer times, or hit clear to free space.")); return false; } }
+let custom=normalizeCustomAssets(loadJSON(LS_KEY));
+const DATA={ gesto:{custom, builtin:[]}, expr:{custom:normalizeCustomAssets(loadJSON(EXPR_KEY)), builtin:[]} };
+let reGrabar=null;
+
+function dedosEstado(lm,izq){ const tip=[8,12,16,20],mid=[6,10,14,18];
+  const out=[(izq?lm[4].x>lm[3].x:lm[4].x<lm[3].x)?1:0];
+  for(let i=0;i<4;i++) out.push(lm[tip[i]].y<lm[mid[i]].y?1:0); return out; }
+function features(pose,manos){ if(!pose) return null;
+  const cx=(pose[11].x+pose[12].x)/2,cy=(pose[11].y+pose[12].y)/2;
+  const sw=Math.hypot(pose[11].x-pose[12].x,pose[11].y-pose[12].y)+1e-6; const f=[];
+  for(const i of [0,13,14,15,16]) f.push((pose[i].x-cx)/sw,(pose[i].y-cy)/sw);
+  let izq=[0,0,0,0,0,0],der=[0,0,0,0,0,0];
+  for(const m of manos){const s=[...m.ded,m.pinch]; if(m.izq)izq=s; else der=s;}
+  return f.concat(izq,der); }
+let _blend=null,_faceLm=null;
+function featuresExpr(){ return _blend; }
+function curFeat(){ return MODE==="expr" ? featuresExpr() : features(_pl,_manos); }
+const EXPR_UMBRAL=3;
+function clasificar(feat,muestras,k=7,umbral=16){ if(!feat||!muestras.length) return null;
+  const ds=muestras.map(([lab,v])=>{let s=0;for(let i=0;i<feat.length;i++){const d=feat[i]-v[i];s+=d*d;}return [s,lab];}).sort((a,b)=>a[0]-b[0]);
+  if(ds[0][0] > umbral) return null;
+  const dN=ds.find(([,l])=>l==="neutral"), dG=ds.find(([,l])=>l!=="neutral");
+  if(dN && (!dG || dN[0] <= dG[0]*1.3)) return "neutral";
+  const c={}; for(let i=0;i<Math.min(k,ds.length);i++){const l=ds[i][1];c[l]=(c[l]||0)+1;}
+  return Object.entries(c).sort((a,b)=>b[1]-a[1])[0][0]; }
+
+let builtinMuestras=[];
+function todasMuestras(){ const over=new Set(Object.keys(custom));
+  const bi=builtinMuestras.filter(([lab])=>!over.has(lab));
+  const cu=Object.entries(custom).flatMap(([lab,d])=>d.samples.map(v=>[lab,v]));
+  return bi.concat(cu); }
+function imgDe(key){ if(key in custom) return cleanAssetPath(custom[key].img);
+  const p=POOL(); if(key in p){const a=p[key];return a.length?a[Math.floor(Math.random()*a.length)]:null;} return null; }
+function nombreDe(key){
+  if(key in NOMBRES) return LANG==="en" ? NOMBRES_EN[key] : NOMBRES[key];
+  if(key in NOMBRES_EXPR) return LANG==="en" ? NOMBRES_EXPR_EN[key] : NOMBRES_EXPR[key];
+  if(custom[key]&&custom[key].nombre) return custom[key].nombre;
+  return key; }
+
+const POSE_CONN=[[11,12],[11,13],[13,15],[12,14],[14,16],[0,11],[0,12]];
+const HAND_CONN=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[0,9],[9,10],[10,11],[11,12],[0,13],[13,14],[14,15],[15,16],[0,17],[17,18],[18,19],[19,20],[5,9],[9,13],[13,17]];
+const lienzo=document.getElementById("lienzo"),ctx=lienzo.getContext("2d"),W=420,H=315;
+function dibujar(conns,lms,col){ ctx.strokeStyle=col;ctx.lineWidth=2;ctx.fillStyle=col;
+  for(const [a,b] of conns) if(lms[a]&&lms[b]){ctx.beginPath();ctx.moveTo(lms[a].x*W,lms[a].y*H);ctx.lineTo(lms[b].x*W,lms[b].y*H);ctx.stroke();}
+  for(const p of lms) if(p){ctx.beginPath();ctx.arc(p.x*W,p.y*H,2,0,7);ctx.fill();} }
+
+const etiqueta=document.getElementById("etiqueta"),estado=document.getElementById("estado");
+const meme=document.getElementById("meme"),memeHint=document.getElementById("memeHint"),estado2=document.getElementById("estado2"),saveMeme=document.getElementById("saveMeme");
+saveMeme.onclick=async()=>{
+  const src=meme.src; if(!src || meme.style.display==="none") return;
+  let blob; try{ blob=await (await fetch(src)).blob(); }catch(e){ window.open(src,"_blank"); return; }
+  const ext=(blob.type.split("/")[1]||"png").replace("jpeg","jpg");
+  const file=new File([blob],"gesto-meme."+ext,{type:blob.type||"image/png"});
+  if(navigator.canShare && navigator.canShare({files:[file]})){ try{ await navigator.share({files:[file],title:"GESTO 98"}); }catch(e){} return; }
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=file.name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); };
+
+const POOL=()=> MODE==="expr" ? EXPR_POOL : BUILTIN_POOLS;
+function srcDe(k){ const src=imgDe(k); return src && !src.startsWith("data:") ? encodeURI(src) : src; }
+function escHtml(s){ return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])); }
+function render(){ const grid=document.getElementById("grid");
+  const keys=new Set([...Object.keys(custom).filter(k=>k!=="neutral"), ...Object.keys(POOL()).filter(k=>k!=="neutral")]);
+  grid.innerHTML=[...keys].map(k=>{ const n=custom[k]?custom[k].samples.length:0; const veces=Math.round(n/90); const nuevo=(k in custom)&&!(k in NOMBRES)&&!(k in POOL());
+    const note=(LANG==="en" ? MEME_NOTES_EN[k] : MEME_NOTES[k]) || "";
+    const noteHtml=note?'<small class="note">'+escHtml(note)+'</small>':'';
+    return '<div class="card"><img src="'+srcDe(k)+'" alt="'+escHtml(nombreDe(k))+'" onerror="this.title=this.src">'+
+      '<div>'+escHtml(nombreDe(k))+'</div>'+noteHtml+
+      '<span class="reg" data-k="'+escHtml(k)+'">'+L("+加录","+add")+(veces?' \u2713'+veces+L("次","x"):'')+'</span>'+
+      (n?' <span class="clr" data-k="'+escHtml(k)+'">clear</span>':'')+
+      (nuevo?' <span class="del" data-id="'+escHtml(k)+'">'+L("删","del")+'</span>':'')+'</div>'; }).join("");
+  grid.querySelectorAll(".reg").forEach(b=>b.onclick=()=>{ const k=b.dataset.k;
+    reGrabar={label:k,img:imgDe(k),nombre:nombreDe(k)};
+    document.getElementById("nombre").value=nombreDe(k);
+    const p=document.getElementById("prev");p.src=imgDe(k);p.style.display="block";
+    estado2.textContent=L("加录「","+add \"")+nombreDe(k)+L("」→ 摆好姿势点『录制手势』(可多录几次)","\" → pose & hit Record (stack as many)"); });
+  grid.querySelectorAll(".clr").forEach(b=>b.onclick=()=>{ const k=b.dataset.k;
+    delete custom[k];saveCustom(custom);render();estado2.textContent=L("已清空「","Cleared \"")+nombreDe(k)+L("」的样本","\""); });
+  grid.querySelectorAll(".del").forEach(b=>b.onclick=()=>{delete custom[b.dataset.id];saveCustom(custom);render();});
+  const nNeu=custom["neutral"]?Math.round(custom["neutral"].samples.length/90):0;
+  document.getElementById("neutralBtn").textContent=L("\u{1F9D8} 补录「中性/放松」","\u{1F9D8} Add 'Neutral'")+(nNeu?L('(已 '+nNeu+' 次)',' ('+nNeu+'x)'):L('(没做手势的样子)',' (relaxed look)')); }
+
+let imgData=null;
+document.getElementById("fileBtn").onclick=()=>document.getElementById("file").click();
+document.getElementById("file").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{imgData=r.result;const p=document.getElementById("prev");p.src=imgData;p.style.display="block";};r.readAsDataURL(f);};
+let grabando=null,grabBuf=[],faltan=0;
+document.getElementById("grabarBtn").onclick=()=>{const nombre=document.getElementById("nombre").value.trim();
+  let label,img; let ap;
+  if(reGrabar){ label=reGrabar.label; img=reGrabar.img; ap=true; }
+  else if(imgData){ label="u_"+Date.now(); img=imgData; ap=false; }
+  else { estado2.textContent=L("\u26A0 上传新图,或点一个表情包的「+加录」","\u26A0 Upload a new image, or hit \"+add\" on a meme"); return; }
+  if(!nombre){estado2.textContent=L("\u26A0 先起个名字","\u26A0 Name it first");return;}
+  grabando={label,nombre,img,append:ap};grabBuf=[];faltan=PREP+REC;estado2.textContent=L("准备…摆好手势","Get ready… pose"); };
+
+document.getElementById("neutralBtn").onclick=()=>{
+  grabando={label:"neutral",nombre:"中性",img:null,append:true};grabBuf=[];faltan=PREP+REC;
+  estado2.textContent=L("补录中性…保持放松、不做手势(可换姿势多录几次)","Recording neutral… stay relaxed, no gesture (vary your pose)"); };
+
+document.getElementById("exportBtn").onclick=()=>{
+  if(!Object.keys(custom).length){ estado2.textContent=L("\u26A0 还没有录任何东西","\u26A0 Nothing recorded yet"); return; }
+  const blob=new Blob([JSON.stringify(custom)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=MODE==="expr"?"default_expr.json":"default.json"; a.click();
+  estado2.textContent=L("\u2713 已导出 default.json,把它发给我放进网站就行","\u2713 Exported default.json"); };
+
+let pose,hand,video,ultimo=0,buf=[],imgActual=null,prevKey=Symbol(),display=null;
+const MINVOTOS=12,BUFMAX=16,PREP=120,REC=180; let _pl=null,_manos=[];
+let face=null,visionFS=null,zoom=1;
+async function initFace(){ if(face||!visionFS) return;
+  face=await FaceLandmarker.createFromOptions(visionFS,{baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",delegate:"GPU"},runningMode:"VIDEO",numFaces:1,outputFaceBlendshapes:true}); }
+function detectarFace(ts){ if(!face){_blend=null;_faceLm=null;return;}
+  const fr=face.detectForVideo(lienzo,ts);
+  _faceLm=(fr.faceLandmarks&&fr.faceLandmarks[0])||null;
+  _blend=(fr.faceBlendshapes&&fr.faceBlendshapes[0])?fr.faceBlendshapes[0].categories.map(c=>c.score):null; }
+function dibujarPuntos(lms,col){ ctx.fillStyle=col; for(let i=0;i<lms.length;i+=4){const p=lms[i];ctx.beginPath();ctx.arc(p.x*W,p.y*H,1.2,0,7);ctx.fill();} }
+
+async function init(){
+  await loadMemeLabels();
+  if(!Object.keys(custom).length){
+    try{ custom=await(await fetch("default.json")).json(); }catch(e){}
+  }
+  DATA.gesto.custom=custom;
+  render();
+  const data=await(await fetch("gestures.json")).json();
+  builtinMuestras=Object.entries(data).flatMap(([lab,vs])=>vs.map(v=>[lab,v]));
+  DATA.gesto.builtin=builtinMuestras;
+  if(!FilesetResolver){
+    try{ ({ FilesetResolver, PoseLandmarker, HandLandmarker, FaceLandmarker } = await import(VISION_BUNDLE_URL)); }
+    catch(e){ estado.textContent=L("表情包已加载；识别模型加载失败，请检查网络/CDN。","Memes loaded; model failed, check network/CDN."); console.error(e); return; }
+  }
+  const vision=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
+  visionFS=vision;
+  pose=await PoseLandmarker.createFromOptions(vision,{baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",delegate:"GPU"},runningMode:"VIDEO",numPoses:1});
+  hand=await HandLandmarker.createFromOptions(vision,{baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",delegate:"GPU"},runningMode:"VIDEO",numHands:2});
+  video=document.createElement("video");video.autoplay=true;video.playsInline=true;
+  if(localStorage.getItem("gesto_mode")==="expr"){ try{ await setMode("expr"); }catch(e){} }
+  video.srcObject=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480}});
+  await video.play();
+  estado.textContent = MODE==="expr" ? L("好了!做一个你训练过的表情试试 😀","Ready! Make an expression you trained 😀")
+                                     : L("好了!比一个你录过的手势试试 👋","Ready! Do a gesture you trained 👋");
+  render(); requestAnimationFrame(loop);
+}
+function detectar(ts){ const pr=pose.detectForVideo(lienzo,ts),hr=hand.detectForVideo(lienzo,ts);
+  _pl=(pr.landmarks&&pr.landmarks[0])||null;_manos=[];
+  if(hr.landmarks) for(let i=0;i<hr.landmarks.length;i++){const lm=hr.landmarks[i],izq=hr.handednesses[i][0].categoryName==="Left";
+    const ded=dedosEstado(lm,izq);const palma=Math.hypot(lm[0].x-lm[9].x,lm[0].y-lm[9].y)+1e-6;
+    const pinch=Math.hypot(lm[4].x-lm[8].x,lm[4].y-lm[8].y)/palma;_manos.push({ded,izq,pinch,lm});} }
+
+function loop(){
+  const vw=video.videoWidth||640, vh=video.videoHeight||480, sw=vw/zoom, sh=vh/zoom, sx=(vw-sw)/2, sy=(vh-sh)/2;
+  ctx.save();ctx.scale(-1,1);ctx.drawImage(video, sx,sy,sw,sh, -W,0,W,H);ctx.restore();
+  const ts=performance.now(); if(ts-ultimo>30){ultimo=ts; if(MODE==="expr") detectarFace(ts); else detectar(ts);}
+  if(MODE==="expr"){ if(_faceLm) dibujarPuntos(_faceLm,"#6cf"); }
+  else { if(_pl) dibujar(POSE_CONN,_pl,"#5c8"); _manos.forEach(m=>dibujar(HAND_CONN,m.lm,"#8c5")); }
+  if(grabando){ const feat=curFeat();
+    if(faltan>REC){etiqueta.textContent=L("准备 ","Ready ")+Math.ceil((faltan-REC)/60);etiqueta.style.color="#fd0";}
+    else{etiqueta.textContent=L("录制中 ","Rec ")+Math.ceil(faltan/60)+"s";etiqueta.style.color="#f55";if(feat&&faltan%2===0)grabBuf.push(feat);}
+    faltan--;
+    if(faltan<=0){
+      if(grabando.append && custom[grabando.label]) custom[grabando.label].samples=custom[grabando.label].samples.concat(grabBuf);
+      else custom[grabando.label]={nombre:grabando.nombre,img:grabando.img,samples:grabBuf};
+      saveCustom(custom);estado2.textContent=L("\u2713 已保存「","\u2713 Saved \"")+nombreDe(grabando.label)+L("」(共"," (")+custom[grabando.label].samples.length+L("样本)"," samples)");
+      document.getElementById("nombre").value="";document.getElementById("prev").style.display="none";
+      imgData=null;reGrabar=null;const nm=grabando.nombre;grabando=null;render();
+      say(L("学会「","Learned \"")+nm+L("」啦!比比看 \u2728","\"! Try it \u2728"));}
+    requestAnimationFrame(loop);return; }
+  const key=clasificar(curFeat(),todasMuestras(),7,MODE==="expr"?EXPR_UMBRAL:16);
+  buf.push(key);if(buf.length>BUFMAX)buf.shift();
+  const c={};buf.forEach(x=>c[x]=(c[x]||0)+1);
+  const neutralVotos=(c["neutral"]||0)+(c["null"]||0);
+  const acc=Object.entries(c).filter(([k])=>k!=="neutral"&&k!=="null").sort((a,b)=>b[1]-a[1])[0];
+  if(acc && acc[1]>=MINVOTOS && acc[1]>=neutralVotos*2) imgActual=acc[0];
+  else if(neutralVotos>=4) imgActual=null;
+  if(imgActual && imgActual!==prevKey){prevKey=imgActual;display=imgDe(imgActual);}
+  etiqueta.textContent=imgActual?nombreDe(imgActual):L("中性","neutral"); etiqueta.style.color=imgActual?"#7fffd4":"#ccc";
+  if(display){meme.src=display;meme.style.display="block";memeHint.style.display="none";saveMeme.style.display="block";}
+  else{meme.style.display="none";memeHint.style.display="block";saveMeme.style.display="none";}
+  requestAnimationFrame(loop);
+}
+
+const POS_KEY="gesto_winpos", MPOS_KEY="gesto_winpos_m";
+const winCamEl=document.getElementById("winCam"), winMemeEl=document.getElementById("winMeme"), memeBodyEl=document.getElementById("memeBody");
+function isMob(){ return window.innerWidth < 700; }
+function savePos(){ if(isMob()){ saveMobilePos(); return; } const p={}; document.querySelectorAll(".win").forEach(w=>{ p[w.id]={l:w.style.left,t:w.style.top,d:w.style.display}; }); try{localStorage.setItem(POS_KEY,JSON.stringify(p));}catch(e){} }
+function loadPos(){ try{ const p=JSON.parse(localStorage.getItem(POS_KEY)||"{}"); for(const id in p){ const w=document.getElementById(id); if(w){ if(p[id].l)w.style.left=p[id].l; if(p[id].t)w.style.top=p[id].t; if(p[id].d)w.style.display=p[id].d; } } }catch(e){} }
+function saveMobilePos(){ try{ const cw=document.getElementById("camWrap");
+  const p={ cam:{l:winCamEl.style.left,t:winCamEl.style.top,w:cw.style.width,h:cw.style.height},
+            meme:{l:winMemeEl.style.left,t:winMemeEl.style.top,w:memeBodyEl.style.width,h:memeBodyEl.style.height} };
+  localStorage.setItem(MPOS_KEY, JSON.stringify(p)); }catch(e){} }
+function applyMobilePos(){ let p; try{ p=JSON.parse(localStorage.getItem(MPOS_KEY)||"null"); }catch(e){ p=null; }
+  if(!p||!p.cam||!p.meme) return false;
+  const cwrap=document.getElementById("camWrap");
+  const clL=v=>Math.max(0,Math.min(parseFloat(v)||8, window.innerWidth-60))+"px";
+  const clT=v=>Math.max(0,Math.min(parseFloat(v)||8, window.innerHeight-60))+"px";
+  const clW=v=>{ const n=parseFloat(v); return n?Math.min(Math.max(140,n), window.innerWidth-16):"auto"; };
+  winCamEl.style.display="block"; winCamEl.style.width="auto"; winCamEl.style.left=clL(p.cam.l); winCamEl.style.top=clT(p.cam.t);
+  cwrap.style.width=clW(p.cam.w); cwrap.style.height=(parseFloat(p.cam.w)*0.62)+"px";
+  winMemeEl.style.display="block"; winMemeEl.style.width="auto"; winMemeEl.style.left=clL(p.meme.l); winMemeEl.style.top=clT(p.meme.t);
+  if(p.meme.w) memeBodyEl.style.width=clW(p.meme.w);
+  if(p.meme.h){ const n=parseFloat(p.meme.h); if(n) memeBodyEl.style.height=Math.max(90,n)+"px"; }
+  sizeCombined(); return true; }
+let ztop=10;
+let dragWin=null,dox=0,doy=0;
+document.querySelectorAll(".win").forEach(w=>{ const tb=w.querySelector(".title-bar");
+  tb.addEventListener("pointerdown",e=>{
+    if(e.target.closest(".title-bar-controls")) return;
+    dragWin=w;dox=e.clientX-w.offsetLeft;doy=e.clientY-w.offsetTop;w.style.zIndex=++ztop;w.classList.add("dragging");
+    try{tb.setPointerCapture(e.pointerId);}catch(_){} }); });
+document.addEventListener("pointermove",e=>{ if(dragWin){dragWin.style.left=Math.max(0,e.clientX-dox)+"px";dragWin.style.top=Math.max(0,e.clientY-doy)+"px";} });
+document.addEventListener("pointerup",()=>{ if(dragWin){ if(isMob()&&dragWin===winMemeEl) sizeCombined(); savePos();dragWin.classList.remove("dragging");} dragWin=null; });
+function addResizer(win,target,keepAspect){
+  const rz=document.createElement("div"); rz.className="resizer"; win.appendChild(rz);
+  rz.addEventListener("pointerdown",e=>{ e.preventDefault(); e.stopPropagation();
+    win.style.zIndex=++ztop; win.classList.add("dragging");
+    const sx=e.clientX, sy=e.clientY, sw=target.clientWidth, sh=target.clientHeight, ratio=sw/(sh||1);
+    try{rz.setPointerCapture(e.pointerId);}catch(_){}
+    function mv(ev){ const nw=Math.min(window.innerWidth-16, Math.max(140, sw+(ev.clientX-sx)));
+      target.style.width=nw+"px";
+      target.style.height=(keepAspect ? nw/ratio : Math.max(90, sh+(ev.clientY-sy)))+"px"; }
+    function up(){ try{rz.releasePointerCapture(e.pointerId);}catch(_){} rz.removeEventListener("pointermove",mv); rz.removeEventListener("pointerup",up); win.classList.remove("dragging"); if(isMob()) sizeCombined(); savePos(); }
+    rz.addEventListener("pointermove",mv); rz.addEventListener("pointerup",up); }); }
+addResizer(winCamEl, document.getElementById("camWrap"), true);
+addResizer(winMemeEl, memeBodyEl, false);
+document.querySelectorAll('[aria-label="Close"],[aria-label="Minimize"]').forEach(b=>b.onclick=e=>{ e.target.closest(".win").style.display="none"; savePos(); });
+function showWin(w){ if(isMob() && w===document.getElementById("winLib")) w=winMemeEl;
+  w.style.display="block"; w.style.zIndex=++ztop;
+  if(isMob() && w!==winCamEl && w!==winMemeEl){ w.style.left="8px"; w.style.top="8px"; }
+  savePos(); }
+document.querySelectorAll(".dicon[data-open]").forEach(ic=>ic.ondblclick=()=>showWin(document.getElementById(ic.dataset.open)));
+const tbBtns=document.querySelectorAll("#tbItems .button");
+if(tbBtns[0]) tbBtns[0].onclick=()=>showWin(winCamEl);
+if(tbBtns[1]) tbBtns[1].onclick=()=>showWin(winMemeEl);
+if(tbBtns[2]) tbBtns[2].onclick=()=>showWin(document.getElementById("winLoad"));if(tbBtns[3]) tbBtns[3].onclick=()=>showWin(document.getElementById("winLoad"));
+function layoutMobile(){ if(!isMob()) return;
+  const pad=8, w=window.innerWidth-pad*2, gap=4, cwrap=document.getElementById("camWrap");
+  cwrap.style.width=w+"px"; cwrap.style.height=Math.round(w*0.62)+"px";
+  winCamEl.style.display="block"; winCamEl.style.width="auto"; winCamEl.style.left=pad+"px"; winCamEl.style.top=pad+"px";
+  const camH=winCamEl.offsetHeight, memeTop=pad+camH+gap;
+  memeBodyEl.style.width=w+"px";
+  memeBodyEl.style.height=Math.max(96, Math.round(window.innerHeight*0.22))+"px";
+  winMemeEl.style.display="block"; winMemeEl.style.width="auto"; winMemeEl.style.left=pad+"px"; winMemeEl.style.top=memeTop+"px";
+  sizeCombined(); }
+const ORIG={}; document.querySelectorAll(".win").forEach(w=>{ ORIG[w.id]={left:w.style.left,top:w.style.top,width:w.style.width,display:w.style.display}; });
+let merged=false;
+function mergeMobile(){ if(merged) return; const lb=document.getElementById("libBody"); if(lb) winMemeEl.querySelector(".window-body").appendChild(lb); merged=true; }
+function unmergeMobile(){ if(!merged) return; const lb=document.getElementById("libBody"), lib=document.getElementById("winLib"); if(lb&&lib) lib.appendChild(lb); merged=false; }
+function sizeCombined(){ if(!isMob()) return;
+  const tb=winMemeEl.querySelector(".title-bar").offsetHeight, top=parseFloat(winMemeEl.style.top)||0;
+  const avail=window.innerHeight - 30 - top - 8 - tb - 12;
+  const previewH=parseFloat(memeBodyEl.style.height)||Math.round(window.innerHeight*0.22);
+  winMemeEl.style.height="";
+  document.getElementById("libBody").style.height=Math.max(90, avail - previewH - 14)+"px"; }
+function clampIntoView(w){ const maxL=Math.max(0,window.innerWidth-80), maxT=Math.max(0,window.innerHeight-50);
+  const l=parseInt(w.style.left)||0, t=parseInt(w.style.top)||0;
+  w.style.left=Math.max(0,Math.min(l,maxL))+"px"; w.style.top=Math.max(0,Math.min(t,maxT))+"px"; }
+function fitDesktop(){
+  if(!localStorage.getItem(POS_KEY)){
+    const gap=12, camL=parseInt(winCamEl.style.left)||120, camT=parseInt(winCamEl.style.top)||18, camR=camL+winCamEl.offsetWidth;
+    if(camR+gap+winMemeEl.offsetWidth <= window.innerWidth){ winMemeEl.style.left=(camR+gap)+"px"; winMemeEl.style.top=camT+"px"; }
+    else { winMemeEl.style.left=camL+"px"; winMemeEl.style.top=(camT+winCamEl.offsetHeight+gap)+"px"; }
+  }
+  document.querySelectorAll(".win").forEach(clampIntoView);
+}
+function enterMobile(){
+  document.body.classList.add("mob");
+  ["winLib","winLoad"].forEach(id=>{const el=document.getElementById(id); if(el) el.style.display="none";});
+  mergeMobile();
+  if(!applyMobilePos()){ layoutMobile(); setTimeout(layoutMobile,150); setTimeout(layoutMobile,600); }
+}
+function exitMobile(){
+  document.body.classList.remove("mob");
+  unmergeMobile();
+  const cwrap=document.getElementById("camWrap"); cwrap.style.width=""; cwrap.style.height="";
+  memeBodyEl.style.width=""; memeBodyEl.style.height=""; winMemeEl.style.height="";
+  document.getElementById("libBody").style.height="";
+  document.querySelectorAll(".win").forEach(w=>{ const o=ORIG[w.id]; if(o){ w.style.left=o.left; w.style.top=o.top; w.style.width=o.width; w.style.display=o.display; } });
+  loadPos();
+  fitDesktop();
+}
+if(isMob()) enterMobile(); else { loadPos(); fitDesktop(); setTimeout(fitDesktop,300); }
+function applyResponsive(){ const mob=isMob(), inMob=document.body.classList.contains("mob");
+  if(mob && !inMob) enterMobile();
+  else if(mob && inMob){ if(!applyMobilePos()) layoutMobile(); }
+  else if(!mob && inMob) exitMobile();
+  else fitDesktop(); }
+window.addEventListener("resize", applyResponsive);
+window.addEventListener("orientationchange", ()=>setTimeout(applyResponsive,250));
+
+const startMenu=document.getElementById("startMenu");
+document.getElementById("startBtn").onclick=e=>{e.stopPropagation();startMenu.style.display=startMenu.style.display==="block"?"none":"block";};
+document.addEventListener("click",()=>startMenu.style.display="none");
+startMenu.addEventListener("click",e=>e.stopPropagation());
+startMenu.querySelectorAll("li").forEach(li=>li.onclick=()=>{const a=li.dataset.act;startMenu.style.display="none";
+  if(a==="reabrir"){ if(isMob()) layoutMobile(); else document.querySelectorAll(".win").forEach(w=>w.style.display="block"); }
+  else if(a==="lib") showWin(document.getElementById("winLib"));
+  else if(a==="ayuda") say(L("上传图→起名→录手势,然后比那个手势就会弹出来啦!","Upload an image > name it > record a gesture, then do that gesture!"));
+  else if(a==="acerca") say(L("GESTO 98 ★ 用手势召唤表情包的复古小玩具","GESTO 98 ★ a retro toy that summons memes with gestures"));
+  else if(a==="privacidad") showWin(document.getElementById("winLoad")); });
+document.getElementById("icoHelp").ondblclick=()=>say(L("双击桌面图标打开窗口;拖标题栏移动窗口","Double-click desktop icons to open windows; drag title bars to move"));
+
+const FRASES_ZH=["嗨!我是 Clippy 📎 比个手势试试~","看起来你想召唤表情包?试试『比OK』!",
+  "想加新表情包?去『我的表情包』上传+录手势~","拖动窗口可以随便摆 🪟","你今天的手势好标准呀 👏","点开始菜单看看有什么 ⊞","back to 2000~ 怀念吧 💾"];
+const FRASES_EN=["Hi! I'm Clippy 📎 try a gesture~","Wanna summon a meme? Try 'OK 👌'!",
+  "Add your own in 'My Memes' — upload + record!","Drag the windows around 🪟","Your gestures look great today 👏","Check out the Start menu ⊞","back to 2000~ feelin' nostalgic? 💾"];
+const FR = ()=> LANG==="en" ? FRASES_EN : FRASES_ZH;
+const bubble=document.getElementById("bubble"),clippy=document.getElementById("clippy");
+function positionBubble(){
+  bubble.style.right=bubble.style.bottom="auto";
+  const r=clippy.getBoundingClientRect(), bw=bubble.offsetWidth, bh=bubble.offsetHeight;
+  let left=r.left-bw+20, top=r.top-bh+20;
+  if(left<4){ left=r.right-20; bubble.style.borderRadius="8px 8px 8px 0"; }
+  else bubble.style.borderRadius="8px 8px 0 8px";
+  if(top<4) top=r.bottom-20;
+  left=Math.max(4,Math.min(left,window.innerWidth-bw-4));
+  top=Math.max(4,Math.min(top,window.innerHeight-bh-4));
+  bubble.style.left=left+"px"; bubble.style.top=top+"px"; }
+function say(t){ bubble.textContent=t; bubble.style.display="block"; positionBubble(); clearTimeout(say._t); say._t=setTimeout(()=>bubble.style.display="none",4500); }
+(function(){ const CLIP_KEY="gesto_clippy";
+  const cX=x=>Math.max(0,Math.min(x,window.innerWidth-40)), cY=y=>Math.max(0,Math.min(y,window.innerHeight-40));
+  function place(l,t){ clippy.style.left=cX(l)+"px"; clippy.style.top=cY(t)+"px"; clippy.style.right="auto"; clippy.style.bottom="auto"; }
+  try{ const p=JSON.parse(localStorage.getItem(CLIP_KEY)||"null"); if(p) place(p.l,p.t); }catch(_){}
+  let sx=0,sy=0,ox=0,oy=0,down=false,moved=false;
+  clippy.addEventListener("pointerdown",e=>{ down=true; moved=false; sx=e.clientX; sy=e.clientY; ox=clippy.offsetLeft; oy=clippy.offsetTop; try{clippy.setPointerCapture(e.pointerId);}catch(_){} });
+  clippy.addEventListener("pointermove",e=>{ if(!down) return; if(!moved && Math.abs(e.clientX-sx)+Math.abs(e.clientY-sy)>4) moved=true; if(moved) place(ox+(e.clientX-sx), oy+(e.clientY-sy)); });
+  clippy.addEventListener("pointerup",e=>{ if(!down) return; down=false; try{clippy.releasePointerCapture(e.pointerId);}catch(_){}
+    if(moved){ try{localStorage.setItem(CLIP_KEY,JSON.stringify({l:parseInt(clippy.style.left),t:parseInt(clippy.style.top)}));}catch(_){} }
+    else say(FR()[Math.floor(Math.random()*FR().length)]); });
+})();
+setTimeout(()=>say(FR()[0]),1500);
+setInterval(()=>{ if(Math.random()<.5) say(FR()[Math.floor(Math.random()*FR().length)]); },16000);
+
+function tick(){const d=new Date();document.getElementById("clock").textContent=String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");}
+setInterval(tick,1000);tick();
+
+
+const langBtn=document.getElementById("langBtn");
+function applyLang(lang){ LANG=lang; localStorage.setItem("gesto_lang",lang);
+  document.querySelectorAll("[data-en]").forEach(el=>{ if(el.dataset.zh===undefined)el.dataset.zh=el.textContent; el.textContent=lang==="en"?el.dataset.en:el.dataset.zh; });
+  document.querySelectorAll("[data-en-ph]").forEach(el=>{ if(el.dataset.zhPh===undefined)el.dataset.zhPh=el.placeholder; el.placeholder=lang==="en"?el.dataset.enPh:el.dataset.zhPh; });
+  document.querySelectorAll("[data-en-title]").forEach(el=>{ if(el.dataset.zhTitle===undefined)el.dataset.zhTitle=el.title; el.title=lang==="en"?el.dataset.enTitle:el.dataset.zhTitle; });
+  langBtn.textContent=lang==="en"?"中文":"EN"; try{render();}catch(e){} try{updateModeUI();}catch(e){} }
+langBtn.onclick=()=>applyLang(LANG==="en"?"zh":"en");
+applyLang(LANG);
+
+function updateModeUI(){
+  const mb=document.getElementById("modeBtn"); if(mb) mb.textContent = MODE==="expr" ? L("🖐️ 手势模式","🖐️ Gesture") : L("😀 表情模式","😀 Face");
+  const gb=document.getElementById("grabarBtn"); if(gb) gb.textContent = MODE==="expr" ? L("● 录制表情","● Record face") : L("● 录制手势","● Record gesture"); }
+async function setMode(m){
+  if(m===MODE) return;
+  DATA[MODE].custom=custom; DATA[MODE].builtin=builtinMuestras;
+  if(m==="expr"){
+    if(!face){ estado.textContent=L("正在加载表情模型…(第一次下载几 MB)","Loading face model… (a few MB first time)");
+      try{ await initFace(); }catch(e){ estado.textContent=L("表情模型加载失败: ","Face model failed: ")+e.message; return; } }
+    if(!Object.keys(DATA.expr.custom).length){
+      try{ const d=await(await fetch("default_expr.json")).json(); if(d&&Object.keys(d).length) DATA.expr.custom=d; }catch(e){} }
+  }
+  MODE=m; localStorage.setItem("gesto_mode",m);
+  custom=DATA[m].custom; builtinMuestras=DATA[m].builtin;
+  buf=[]; imgActual=null; display=null; prevKey=Symbol(); grabando=null; reGrabar=null; imgData=null;
+  meme.style.display="none"; memeHint.style.display="block"; saveMeme.style.display="none";
+  document.getElementById("nombre").value=""; document.getElementById("prev").style.display="none";
+  updateModeUI(); render();
+  estado.textContent = m==="expr"
+    ? L("表情模式:上传图+起名+录表情,然后做那个表情就会弹 😀","Face mode: upload image + name + record a face, then make it 😀")
+    : L("手势模式:比一个你录过的手势 👋","Gesture mode: do a trained gesture 👋"); }
+document.getElementById("modeBtn").onclick=()=> setMode(MODE==="expr"?"gesto":"expr");
+const zoomEl=document.getElementById("zoom"); if(zoomEl) zoomEl.oninput=()=>{ zoom=parseFloat(zoomEl.value)||1; };
+updateModeUI();
+
+const esAdmin = new URLSearchParams(location.search).has("admin") || location.hostname==="localhost" || location.hostname==="127.0.0.1";
+if(!esAdmin) document.getElementById("exportBtn").style.display="none";
+
+function startApp(){ init().catch(e=>{ estado.textContent=L("出错: ","Error: ")+e.message; console.error(e); }); }
+const privacyGate=document.getElementById("privacyGate");
+if(localStorage.getItem("gesto_privacy_ok")==="1"){ privacyGate.style.display="none"; startApp(); }
+else{ document.getElementById("privacyOkBtn").onclick=()=>{
+  localStorage.setItem("gesto_privacy_ok","1"); privacyGate.style.display="none"; startApp(); }; }
+</script>
+</body>
+</html>
+
+
+
+
+
+
+

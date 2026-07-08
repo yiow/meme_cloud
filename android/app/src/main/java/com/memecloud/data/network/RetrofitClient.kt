@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit
 object RetrofitClient {
 
     // ⚠️ 真机调试时改为你的电脑 IP
-    private const val BASE_URL = "http://10.0.2.2:8001/"
+     private const val BASE_URL = "http://10.0.2.2:9000/"
 
     private val okHttpClient: OkHttpClient by lazy {
         val logging = HttpLoggingInterceptor().apply {

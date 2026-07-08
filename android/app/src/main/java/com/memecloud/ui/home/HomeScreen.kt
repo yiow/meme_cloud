@@ -1,4 +1,4 @@
-package com.memecloud.ui.home
+﻿package com.memecloud.ui.home
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -37,11 +37,24 @@ import java.net.URL
  * 零频闪，用字节级边界匹配，不依赖 WebView
  */
 @Composable
-fun MjpegStreamView(streamUrl: String, modifier: Modifier = Modifier) {
+fun MjpegStreamView(streamUrl: String, enabled: Boolean = true, modifier: Modifier = Modifier) {
     var bitmap by remember { mutableStateOf<Bitmap?>(null) }
     val scope = rememberCoroutineScope()
+    var connectionError by remember { mutableStateOf<String?>(null) }
 
-    DisposableEffect(streamUrl) {
+    // 连接超时：10秒内没收到帧就提示
+    LaunchedEffect(enabled) {
+        if (!enabled) return@LaunchedEffect
+        connectionError = null
+        bitmap = null
+        delay(10000)
+        if (bitmap == null && connectionError == null) {
+            connectionError = "\u8FDE\u63A5\u8D85\u65F6\uFF0C\u8BF7\u68C0\u67E5\u540E\u7AEF\u670D\u52A1"
+        }
+    }
+
+    DisposableEffect(streamUrl, enabled) {
+        if (!enabled) return@DisposableEffect onDispose { }
         var running = true
         val job = scope.launch(Dispatchers.IO) {
             try {
@@ -52,6 +65,7 @@ fun MjpegStreamView(streamUrl: String, modifier: Modifier = Modifier) {
                 conn.connect()
 
                 if (conn.responseCode != 200) {
+                    connectionError = "\u540E\u7AEF\u8FD4\u56DE ${conn.responseCode}"
                     conn.disconnect()
                     return@launch
                 }
@@ -138,7 +152,7 @@ fun MjpegStreamView(streamUrl: String, modifier: Modifier = Modifier) {
                 input.close()
                 conn.disconnect()
             } catch (e: Exception) {
-                if (e !is CancellationException) e.printStackTrace()
+                if (e !is CancellationException) { e.printStackTrace(); connectionError = e.message?.take(50) ?: "\u8FDE\u63A5\u5931\u8D25" }
             }
         }
         onDispose {
@@ -148,14 +162,27 @@ fun MjpegStreamView(streamUrl: String, modifier: Modifier = Modifier) {
     }
 
     Box(modifier = modifier.background(Color.Black), contentAlignment = Alignment.Center) {
-        bitmap?.let {
-            Image(
-                bitmap = it.asImageBitmap(),
-                contentDescription = "摄像头预览",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Fit
-            )
-        } ?: Text("摄像头连接中…", color = Color.Gray, fontSize = 14.sp)
+        if (!enabled) {
+            Text("点击开启摄像头", color = Color.Gray, fontSize = 16.sp)
+        } else {
+            if (connectionError != null) {
+                Text(
+                    text = connectionError!!,
+                    color = Color(AndroidColor.parseColor("#FF6666")),
+                    fontSize = 14.sp,
+                    modifier = Modifier.padding(16.dp)
+                )
+            } else {
+                bitmap?.let {
+                    Image(
+                        bitmap = it.asImageBitmap(),
+                        contentDescription = "摄像头预览",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit
+                    )
+                } ?: Text("摄像头连接中…", color = Color.Gray, fontSize = 14.sp)
+            }
+        }
     }
 }
 
@@ -164,6 +191,9 @@ fun MjpegStreamView(streamUrl: String, modifier: Modifier = Modifier) {
 @Composable
 fun HomeScreen() {
     val context = LocalContext.current
+
+    // 摄像头开关
+    var isCameraOn by remember { mutableStateOf(false) }
 
     // ── 匹配状态 ──
     var detectedLabel by remember { mutableStateOf("") }
@@ -181,7 +211,7 @@ fun HomeScreen() {
     var searchQuery by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
 
-    val streamUrl = "http://10.0.2.2:8001/api/match/camera/stream"
+    val streamUrl = "http://10.0.2.2:9000/api/match/camera/stream"
 
     // ── 拍照匹配 ──
     fun takePhotoAndMatch() {
@@ -225,8 +255,9 @@ fun HomeScreen() {
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { takePhotoAndMatch() },
+                onClick = { if (isCameraOn) takePhotoAndMatch() },
                 containerColor = if (isLoading) MaterialTheme.colorScheme.secondary
+                else if (!isCameraOn) MaterialTheme.colorScheme.surfaceVariant
                 else MaterialTheme.colorScheme.primary
             ) {
                 if (isLoading) {
@@ -255,8 +286,30 @@ fun HomeScreen() {
             ) {
                 MjpegStreamView(
                     streamUrl = streamUrl,
+                    enabled = isCameraOn,
                     modifier = Modifier.fillMaxSize()
                 )
+
+                // 摄像头开关\u6309\u94AE
+                IconButton(
+                    onClick = { isCameraOn = !isCameraOn },
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(12.dp)
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(
+                            if (isCameraOn) Color(0xCC00AA00)
+                            else Color(0xCC555555)
+                        )
+                ) {
+                    Icon(
+                        imageVector = if (isCameraOn) Icons.Filled.Videocam else Icons.Filled.VideocamOff,
+                        contentDescription = if (isCameraOn) "\u5173\u95ED\u6444\u50CF\u5934" else "\u5F00\u542F\u6444\u50CF\u5934",
+                        tint = Color.White,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
 
                 // 匹配结果浮动标签
                 if (detectedLabel.isNotEmpty()) {
@@ -340,7 +393,7 @@ fun HomeScreen() {
                     Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         AsyncImage(
                             model = ImageRequest.Builder(context)
-                                .data("http://10.0.2.2:8001${matchedImageUrl}")
+                                .data("http://10.0.2.2:9000${matchedImageUrl}")
                                 .crossfade(true)
                                 .build(),
                             contentDescription = null,

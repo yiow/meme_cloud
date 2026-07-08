@@ -1,6 +1,6 @@
 """表情云库 — FastAPI 入口"""
-#uvicorn app.main:app --host 0.0.0.0 --port 8001
-#Get-NetTCPConnection -LocalPort 8001 | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }
+ #uvicorn app.main:app --host 0.0.0.0 --port 9000
+ #Get-NetTCPConnection -LocalPort 9000 | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }
 from contextlib import asynccontextmanager
 from pathlib import Path
 

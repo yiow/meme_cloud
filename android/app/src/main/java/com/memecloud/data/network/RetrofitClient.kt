@@ -1,6 +1,7 @@
 package com.memecloud.data.network
 
 import com.memecloud.data.api.AuthApi
+import com.memecloud.data.api.MatchApi
 import com.memecloud.data.api.MemeApi
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -17,7 +18,7 @@ import java.util.concurrent.TimeUnit
 object RetrofitClient {
 
     // ⚠️ 真机调试时改为你的电脑 IP
-    private const val BASE_URL = "http://10.0.2.2:8000/"
+    private const val BASE_URL = "http://10.0.2.2:8001/"
 
     private val okHttpClient: OkHttpClient by lazy {
         val logging = HttpLoggingInterceptor().apply {
@@ -41,4 +42,5 @@ object RetrofitClient {
 
     val authApi: AuthApi by lazy { retrofit.create(AuthApi::class.java) }
     val memeApi: MemeApi by lazy { retrofit.create(MemeApi::class.java) }
+    val matchApi: MatchApi by lazy { retrofit.create(MatchApi::class.java) }
 }

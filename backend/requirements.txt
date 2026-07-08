@@ -11,3 +11,5 @@ python-jose[cryptography]==3.3.0
 pydantic[email]==2.10.3
 pydantic-settings==2.7.1
 python-multipart==0.0.18
+opencv-python-headless==4.10.0.84
+mediapipe==0.10.14

@@ -56,9 +56,9 @@ input:focus{ border-color:var(--primary); }
 .room-topbar .status .dot.active{ background:var(--success); }
 .room-body{ flex:1; display:flex; overflow:hidden; }
 .danmaku-stage{ flex:1; position:relative; overflow:hidden; background:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2220%22 height=%2220%22><rect width=%2220%22 height=%2220%22 fill=%22%23141430%22/><rect x=%221%22 y=%221%22 width=%2218%22 height=%2218%22 fill=%22%231a1a3e%22/></svg>'); }
-.danmaku-item{ position:absolute; right:-150px; white-space:nowrap; will-change:transform,right; display:flex; align-items:center; gap:6px; }
-.danmaku-item .user-name{ font-size:11px; color:var(--accent); max-width:80px; overflow:hidden; text-overflow:ellipsis; }
-.danmaku-item img{ height:60px; border-radius:4px; box-shadow:0 2px 8px rgba(0,0,0,0.3); }
+.danmaku-item{ position:absolute; right:-150px; will-change:transform,right; display:flex; flex-direction:column; align-items:center; gap:4px; }
+.danmaku-item .user-name{ font-size:11px; color:var(--accent); max-width:100px; overflow:hidden; text-overflow:ellipsis; text-align:center; line-height:1.2; }
+.danmaku-item img{ height:56px; border-radius:4px; box-shadow:0 2px 8px rgba(0,0,0,0.3); }
 .danmaku-empty{ position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:var(--text2); text-align:center; font-size:14px; }
 .room-sidebar{ width:260px; background:var(--surface); border-left:1px solid var(--border); display:flex; flex-direction:column; }
 .sidebar-tabs{ display:flex; border-bottom:1px solid var(--border); }
@@ -164,8 +164,8 @@ input:focus{ border-color:var(--primary); }
       <div class="danmaku-stage" id="danmakuStage">
         <div v-for="dm in danmakuItems" :key="dm.id" class="danmaku-item"
              :style="{ top: dm.top + '%', animation: 'danmakuScroll ' + dm.duration + 's linear' }">
-          <span class="user-name">{{ dm.nickname || dm.username }}</span>
           <img :src="dm.meme_url" :alt="dm.meme_id">
+          <span class="user-name">{{ dm.nickname || dm.username }}</span>
         </div>
         <div v-if="!danmakuItems.length" class="danmaku-empty">Waiting for memes...</div>
       </div>

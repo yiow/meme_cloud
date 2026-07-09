@@ -28,21 +28,36 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.random.Random
 
-private data class BarrageMsg(val id: Long, val meme: LocalMemeItem?, val sender: String, val yOffset: Float)
+private data class BarrageMsg(val id: Long, val meme: LocalMemeItem?, val sender: String, val lane: Int)
 
 private val SENDERS = listOf("表情帝", "猫奴小王", "摸鱼大师", "斗图冠军", "社恐星人", "干饭王")
 
 private const val BASE_URL = "http://10.0.2.2:9000"
 
+private const val LANE_COUNT = 6
+
 @Composable
+
 fun BattleRoomScreen(roomId: String, roomName: String, onBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-
+    val laneLastTime = remember { MutableList(LANE_COUNT) { 0L } }
     var messages by remember { mutableStateOf(listOf<BarrageMsg>()) }
     var msgId by remember { mutableLongStateOf(0L) }
     val onlineCount = remember { mutableIntStateOf(Random.nextInt(5, 35)) }
     var localMemes by remember { mutableStateOf(listOf<LocalMemeItem>()) }
+
+    fun pickLane(): Int {
+        val now = System.currentTimeMillis()
+
+        // 找“最空闲”的轨道（间隔时间最大）
+        val lane = (0 until LANE_COUNT).maxBy {
+            now - laneLastTime[it]
+        }
+
+        laneLastTime[lane] = now
+        return lane
+    }
 
     // 加载本地表情包
     LaunchedEffect(Unit) {
@@ -62,7 +77,7 @@ fun BattleRoomScreen(roomId: String, roomName: String, onBack: () -> Unit) {
                 id = ++msgId,
                 meme = meme,
                 sender = SENDERS.random(),
-                yOffset = Random.nextFloat() * 0.7f
+                lane = pickLane()
             )).takeLast(50)
         }
     }
@@ -107,11 +122,14 @@ fun BattleRoomScreen(roomId: String, roomName: String, onBack: () -> Unit) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
+
+            val laneHeight = 100.dp
             messages.forEach { msg ->
                 key(msg.id) {
                     AnimatedBarrage(context = context, msg = msg, modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = (msg.yOffset * 400).dp))
+                        .padding(top = laneHeight * msg.lane)
+                    )
                 }
             }
         }
@@ -138,7 +156,7 @@ fun BattleRoomScreen(roomId: String, roomName: String, onBack: () -> Unit) {
                                             id = ++msgId,
                                             meme = meme,
                                             sender = "我",
-                                            yOffset = Random.nextFloat() * 0.7f
+                                            lane = pickLane()
                                         )).takeLast(50)
                                     }
                                 }
@@ -177,17 +195,21 @@ private fun AnimatedBarrage(
         )
     }
 
-    Row(
+    Column(
         modifier = modifier
             .offset(x = offsetX.value.dp)
-            .clip(RoundedCornerShape(20.dp))
+            .wrapContentWidth()
+            .clip(RoundedCornerShape(16.dp))
             .background(
-                if (msg.sender == "我") MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                else MaterialTheme.colorScheme.surface
+                if (msg.sender == "我")
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                else
+                    MaterialTheme.colorScheme.surface
             )
-            .padding(horizontal = 10.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // 👉 上面：图片
         msg.meme?.let {
             AsyncImage(
                 model = ImageRequest.Builder(context)
@@ -196,11 +218,21 @@ private fun AnimatedBarrage(
                     .build(),
                 contentDescription = it.description,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.size(40.dp).clip(RoundedCornerShape(6.dp))
+                modifier = Modifier
+                    .size(128.dp)
+                    .clip(RoundedCornerShape(8.dp))
             )
         }
-        Spacer(Modifier.width(6.dp))
-        Text(msg.sender, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+        Spacer(Modifier.height(4.dp))
+
+        // 👉 下面：昵称
+        Text(
+            text = msg.sender,
+            fontSize = 15.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1
+        )
     }
 }
 

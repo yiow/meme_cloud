@@ -65,7 +65,9 @@ interface GameApi {
         @Part file: MultipartBody.Part,
         @Part("target_label") targetLabel: RequestBody,
         @Part("target_emoji_id") targetEmojiId: RequestBody,
-        @Part("target_image") targetImage: RequestBody
+        @Part("target_image") targetImage: RequestBody,
+        @Part("user_id") userId: RequestBody,
+        @Part("match_id") matchId: RequestBody,
     ): ApiResponse<SubmitResult>
 
     @GET("api/game/match/{matchId}")

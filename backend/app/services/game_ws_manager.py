@@ -16,12 +16,15 @@
 """
 
 import json
+import logging
 import time
 from typing import Any
 
 from app.services import game_service
 
 import asyncio
+
+logger = logging.getLogger("game_ws")
 
 # ── 内存状态 ──
 _main_loop: asyncio.AbstractEventLoop | None = None
@@ -142,15 +145,22 @@ def submit_score_sync(user_id: int, match_id: int, score: int):
     )
 
 
+async def submit_score(user_id: int, match_id: int, score: int):
+    """异步版本 — 从 async 端点直接调用"""
+    await _submit_score_async(user_id, match_id, score)
+
+
 # ── 提交得分（由 HTTP camera-submit 调用）──
 
 async def _submit_score_async(user_id: int, match_id: int, score: int):
     """玩家提交得分。双方都提交后广播最终结果。"""
     match = _active_matches.get(match_id)
     if not match:
+        logger.warning(f"submit_score: match {match_id} not found (active: {list(_active_matches.keys())})")
         return
 
     match["scores"][user_id] = score
+    logger.info(f"submit_score: user={user_id} match={match_id} score={score} scores={match['scores']}")
 
     # 通知对手
     for pid in match["players"]:
@@ -162,12 +172,15 @@ async def _submit_score_async(user_id: int, match_id: int, score: int):
                         "type": "opponent_ready",
                         "msg": "对手已完成模仿"
                     }))
-                except Exception:
-                    pass
+                    logger.info(f"sent opponent_ready to user={pid}")
+                except Exception as e:
+                    logger.warning(f"failed to notify user={pid}: {e}")
+            else:
+                logger.warning(f"opponent {pid} not connected")
 
     # 双方都提交了 → 计算最终结果并广播
     if match["scores"].keys() >= set(match["players"]):
-        results = _build_results(match)
+        logger.info(f"match {match_id}: both submitted, broadcasting results")
         for pid in match["players"]:
             ws = _ws_connections.get(pid)
             if ws:
@@ -183,9 +196,14 @@ async def _submit_score_async(user_id: int, match_id: int, score: int):
                         "opponent_name": f"玩家{other_id}",
                         "winner": winner,
                     }))
-                except Exception:
-                    pass
+                    logger.info(f"result sent to user={pid}: {own} vs {other}")
+                except Exception as e:
+                    logger.warning(f"failed to send result to user={pid}: {e}")
+            else:
+                logger.warning(f"user {pid} not connected for result")
         del _active_matches[match_id]
+    else:
+        logger.info(f"match {match_id}: waiting for other player (scores: {match['scores']})")
 
 
 def _build_results(match: dict) -> list[dict]:

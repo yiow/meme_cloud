@@ -123,6 +123,17 @@ testuser 关注了 3 个人：
 ### 用户相关
 - **users** — 含 username、密码哈希、头像、昵称、简介、积分、粉丝数/关注数
 
+### 模仿大赛相关
+- **game_matches** — 对局主表，含目标表情包（target_emoji_id, target_label, target_image）、状态、创建时间
+  - `target_emoji_id`: VARCHAR(100)，表情包标识（非 FK）
+  - 无 `fk_game_room` / `fk_game_target_emoji` 外键约束（已删除，因 emoji key 为字符串）
+- **game_participants** — 对局参与记录，含 score、feature_json（特征向量）、photo_label（识别标签）
+  - 无 `fk_game_part_user` 外键约束（已删除，因 App 使用随机 user_id，DB 存盘默认 user_id=1）
+  - UNIQUE(match_id, user_id)
+
+### 斗图相关
+- **danmaku_rooms** — 斗图室房间
+
 ### 其他（种子数据，功能待完善）
 - **emojis** — 表情包检索库
 - **tags / emoji_tags** — 标签体系
@@ -130,4 +141,3 @@ testuser 关注了 3 个人：
 - **search_history** — 检索历史
 - **bounties / bounty_submissions** — 悬赏
 - **notifications** — 通知
-- **danmaku_rooms / game_matches / game_participants** — 斗图（未启用）

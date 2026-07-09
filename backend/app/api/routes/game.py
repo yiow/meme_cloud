@@ -2,7 +2,7 @@
 
 import json
 
-from fastapi import APIRouter, Form, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, File, Form, UploadFile, WebSocket, WebSocketDisconnect
 
 from app.core.database import SessionLocal
 from app.models.game import GameMatch, GameParticipant
@@ -20,6 +20,77 @@ def random_target():
     """随机抽取一个模仿目标表情包"""
     target = game_service.get_random_target()
     return ApiResponse(msg="ok", data=target)
+
+
+@router.post("/submit")
+async def submit_photo(
+    file: UploadFile = File(...),
+    target_label: str = Form(...),
+    target_emoji_id: str = Form(...),
+    target_image: str = Form(...),
+    user_id: int = Form(1),
+    match_id: int = Form(0),
+):
+    """
+    手机拍照上传 + AI 打分。
+    如果是多人对局 (match_id > 0)，结果会通过 WebSocket 广播给双方。
+    """
+    # 1. 读取上传的照片
+    image_bytes = await file.read()
+
+    # 2. 提取特征
+    features = mediapipe_extractor.extract_gesture_features(image_bytes)
+    if features is None:
+        return ApiResponse(code=1, msg="未检测到人体姿态，请后退让上半身入镜")
+
+    # 3. AI 打分
+    score_result = game_service.score_imitation(features, target_label)
+
+    # 4. 保存记录
+    db = SessionLocal()
+    try:
+        match = GameMatch(
+            target_emoji_id=target_emoji_id,
+            target_label=target_label,
+            target_image=target_image,
+            status=2,
+        )
+        db.add(match)
+        db.flush()
+        db_match_id = match.id
+
+        participant = GameParticipant(
+            match_id=db_match_id,
+            user_id=1,  # DB FK: 默认关联 testuser，真实 user_id 仅用于 WebSocket
+            score=score_result["score"],
+            feature_json=json.dumps(features),
+            photo_label=score_result["matched_label"],
+        )
+        db.add(participant)
+        db.commit()
+    finally:
+        db.close()
+
+    user_result = {
+        "user_id": user_id,
+        "nickname": f"玩家{user_id}",
+        "score": score_result["score"],
+        "photo_url": None,
+        "rank": 0,
+    }
+
+    # 5. 多人对局：通知 WebSocket 管理器（async 直接 await）
+    if match_id > 0:
+        await game_ws_manager.submit_score(user_id, match_id, score_result["score"])
+
+    return ApiResponse(msg="ok", data={
+        "match_id": db_match_id,
+        "score": score_result["score"],
+        "matched_label": score_result["matched_label"],
+        "is_exact_match": score_result["is_exact_match"],
+        "avg_distance": score_result.get("avg_distance", 0),
+        "user_result": user_result,
+    })
 
 
 @router.post("/camera-submit")

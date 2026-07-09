@@ -246,16 +246,17 @@ INSERT INTO `follows` (`follower_id`, `following_id`, `created_at`) VALUES (1, 5
 DROP TABLE IF EXISTS `game_matches`;
 CREATE TABLE `game_matches` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '对局ID',
-  `room_id` bigint DEFAULT NULL COMMENT '所属斗图房间（可为NULL，独立匹配）',
-  `round_num` int NOT NULL COMMENT '第几轮',
-  `target_emoji_id` bigint NOT NULL COMMENT '本轮模仿目标 →「熊猫人震惊」',
+  `room_id` bigint DEFAULT NULL,
+  `round_num` int DEFAULT '0',
+  `target_emoji_id` varchar(100) NOT NULL COMMENT 'emoji key',
+  `target_label` varchar(100) NOT NULL DEFAULT '' COMMENT '模仿目标标签',
+  `target_image` varchar(512) NOT NULL DEFAULT '' COMMENT '目标表情包URL',
   `status` tinyint NOT NULL DEFAULT '0' COMMENT '0=匹配中, 1=进行中, 2=已结束',
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   PRIMARY KEY (`id`),
   KEY `idx_status` (`status`),
   KEY `idx_room_round` (`room_id`,`round_num`),
-  KEY `fk_game_target_emoji` (`target_emoji_id`),
-  CONSTRAINT `fk_game_room` FOREIGN KEY (`room_id`) REFERENCES `danmaku_rooms` (`id`),
-  CONSTRAINT `fk_game_target_emoji` FOREIGN KEY (`target_emoji_id`) REFERENCES `emojis` (`id`)
+  KEY `fk_game_target_emoji` (`target_emoji_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='模仿大赛对局表';
 
 -- game_matches: empty table, no data
@@ -264,16 +265,17 @@ DROP TABLE IF EXISTS `game_participants`;
 CREATE TABLE `game_participants` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '记录ID',
   `match_id` bigint NOT NULL COMMENT '所属对局',
-  `user_id` bigint NOT NULL COMMENT '参与者',
+  `user_id` bigint NOT NULL COMMENT '参与者 (默认=1)',
   `score` int NOT NULL DEFAULT '0' COMMENT 'AI评分 0-100',
+  `feature_json` text COMMENT '用户特征向量JSON',
   `photo_url` varchar(512) DEFAULT NULL COMMENT '用户模仿自拍的图片路径',
+  `photo_label` varchar(100) DEFAULT NULL COMMENT '识别到的标签',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '参与时间',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_match_user` (`match_id`,`user_id`),
   KEY `idx_user` (`user_id`),
   KEY `idx_user_score` (`user_id`,`score` DESC),
-  CONSTRAINT `fk_game_part_match` FOREIGN KEY (`match_id`) REFERENCES `game_matches` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_game_part_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
+  CONSTRAINT `fk_game_part_match` FOREIGN KEY (`match_id`) REFERENCES `game_matches` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='对局参与者表';
 
 -- game_participants: empty table, no data

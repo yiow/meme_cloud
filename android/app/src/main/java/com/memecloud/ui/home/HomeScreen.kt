@@ -1,9 +1,10 @@
-﻿package com.memecloud.ui.home
+package com.memecloud.ui.home
 
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
+import android.Manifest
+import android.content.pm.PackageManager
 import android.graphics.Color as AndroidColor
-import androidx.compose.foundation.Image
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -20,166 +21,22 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.memecloud.data.api.SearchResult
 import com.memecloud.data.network.RetrofitClient
-import com.memecloud.data.network.ServerConfig
 import com.memecloud.data.network.toFullUrl
+import com.memecloud.ui.camera.CameraPreview
+import com.memecloud.ui.camera.rememberCameraState
 import kotlinx.coroutines.*
-import java.net.HttpURLConnection
-import java.net.URL
-
-/**
- * MJPEG 流解码 composable — 长连接读流 → 后台解码 Bitmap → Image 显示
- */
-@Composable
-fun MjpegStreamView(streamUrl: String, enabled: Boolean = true, modifier: Modifier = Modifier) {
-    var bitmap by remember { mutableStateOf<Bitmap?>(null) }
-    val scope = rememberCoroutineScope()
-    var connectionError by remember { mutableStateOf<String?>(null) }
-
-    // 连接超时：10秒内没收到帧就提示
-    LaunchedEffect(enabled) {
-        if (!enabled) return@LaunchedEffect
-        connectionError = null
-        bitmap = null
-        delay(10000)
-        if (bitmap == null && connectionError == null) {
-            connectionError = "\u8FDE\u63A5\u8D85\u65F6\uFF0C\u8BF7\u68C0\u67E5\u540E\u7AEF\u670D\u52A1"
-        }
-    }
-
-    DisposableEffect(streamUrl, enabled) {
-        if (!enabled) return@DisposableEffect onDispose { }
-        var running = true
-        val job = scope.launch(Dispatchers.IO) {
-            try {
-                val url = URL(streamUrl)
-                val conn = url.openConnection() as HttpURLConnection
-                conn.connectTimeout = 3000
-                conn.readTimeout = 0
-                conn.connect()
-
-                if (conn.responseCode != 200) {
-                    connectionError = "\u540E\u7AEF\u8FD4\u56DE ${conn.responseCode}"
-                    conn.disconnect()
-                    return@launch
-                }
-
-                val input = conn.inputStream
-                val buf = ByteArray(128 * 1024)
-                val jpgBuf = ByteArray(512 * 1024)
-                var jpgLen = 0
-
-                var boundary = ByteArray(0)
-                var i = 0
-                while (running) {
-                    val b = input.read(); if (b == -1) break
-                    if (i >= buf.size) break
-                    buf[i++] = b.toByte()
-                    if (b == '\n'.code && i >= 2 && buf[i - 2] == '\r'.toByte()) {
-                        val line = String(buf, 0, i - 2, Charsets.UTF_8)
-                        if (line.startsWith("--")) {
-                            boundary = ("\r\n$line\r\n").toByteArray()
-                        }
-                        break
-                    }
-                }
-                if (boundary.isEmpty()) { conn.disconnect(); return@launch }
-
-                val ring = ByteArray(boundary.size)
-                var ringPos = 0
-
-                fun ringMatch(): Boolean {
-                    for (k in boundary.indices) {
-                        if (ring[(ringPos + k) % boundary.size] != boundary[k]) return false
-                    }
-                    return true
-                }
-
-                var inHeaders = true
-                var headerBlankLine = 0
-
-                while (running) {
-                    val b = input.read(); if (b == -1) break
-                    val byte = b.toByte()
-
-                    if (inHeaders) {
-                        if (byte == '\r'.toByte() || byte == '\n'.toByte()) {
-                            headerBlankLine++
-                        } else {
-                            headerBlankLine = 0
-                        }
-                        if (headerBlankLine >= 4) {
-                            inHeaders = false
-                            jpgLen = 0
-                        }
-                        continue
-                    }
-
-                    ring[ringPos] = byte
-                    ringPos = (ringPos + 1) % boundary.size
-
-                    if (jpgLen < jpgBuf.size) {
-                        jpgBuf[jpgLen++] = byte
-                    }
-
-                    if (ringMatch()) {
-                        val frameLen = jpgLen - boundary.size
-                        if (frameLen > 4) {
-                            val bmp = BitmapFactory.decodeByteArray(jpgBuf, 0, frameLen)
-                            if (bmp != null) {
-                                withContext(Dispatchers.Main) { bitmap = bmp }
-                            }
-                        }
-                        jpgLen = 0
-                        inHeaders = true
-                        headerBlankLine = 0
-                    }
-                }
-                input.close()
-                conn.disconnect()
-            } catch (e: Exception) {
-                if (e !is CancellationException) { e.printStackTrace(); connectionError = e.message?.take(50) ?: "\u8FDE\u63A5\u5931\u8D25" }
-            }
-        }
-        onDispose {
-            running = false
-            job.cancel()
-        }
-    }
-
-    Box(modifier = modifier.background(Color.Black), contentAlignment = Alignment.Center) {
-        if (!enabled) {
-            Text("点击开启摄像头", color = Color.Gray, fontSize = 16.sp)
-        } else {
-            if (connectionError != null) {
-                Text(
-                    text = connectionError!!,
-                    color = Color(AndroidColor.parseColor("#FF6666")),
-                    fontSize = 14.sp,
-                    modifier = Modifier.padding(16.dp)
-                )
-            } else {
-                bitmap?.let {
-                    Image(
-                        bitmap = it.asImageBitmap(),
-                        contentDescription = "摄像头预览",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Fit
-                    )
-                } ?: Text("摄像头连接中…", color = Color.Gray, fontSize = 14.sp)
-            }
-        }
-    }
-}
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -187,8 +44,22 @@ fun MjpegStreamView(streamUrl: String, enabled: Boolean = true, modifier: Modifi
 fun HomeScreen() {
     val context = LocalContext.current
 
+    // ── 摄像头权限 ──
+    var hasCameraPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+                    PackageManager.PERMISSION_GRANTED
+        )
+    }
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted -> hasCameraPermission = granted }
+
     // 摄像头开关
     var isCameraOn by remember { mutableStateOf(false) }
+
+    // CameraX 状态
+    val cameraState = rememberCameraState()
 
     // ── 匹配状态 ──
     var detectedLabel by remember { mutableStateOf("") }
@@ -206,7 +77,6 @@ fun HomeScreen() {
     val searchFocusRequester = remember { FocusRequester() }
 
     val scope = rememberCoroutineScope()
-    val streamUrl = "/api/match/camera/stream".toFullUrl()
 
     // ── 标签搜索 ──
     fun performSearch(query: String) {
@@ -224,13 +94,22 @@ fun HomeScreen() {
         }
     }
 
-    // ── 拍照匹配 ──
+    // ── 手机拍照匹配 ──
     fun takePhotoAndMatch() {
         scope.launch {
             isLoading = true
             matchError = ""
             try {
-                val r = RetrofitClient.matchApi.cameraSnapshot(mode)
+                val fileBytes = cameraState.takePhoto()
+                if (fileBytes == null) {
+                    matchError = "拍照失败，请重试"
+                    isLoading = false
+                    return@launch
+                }
+                val requestBody = fileBytes.toRequestBody("image/jpeg".toMediaTypeOrNull())
+                val part = MultipartBody.Part.createFormData("file", "snapshot.jpg", requestBody)
+                val modeBody = mode.toRequestBody("text/plain".toMediaTypeOrNull())
+                val r = RetrofitClient.matchApi.matchPhoto(part, modeBody)
                 if (r.isSuccess && r.data != null) {
                     detectedLabel = r.data.label ?: "无匹配"
                     matchedImageUrl = r.data.image_url
@@ -264,9 +143,9 @@ fun HomeScreen() {
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { if (isCameraOn) takePhotoAndMatch() },
+                onClick = { if (isCameraOn && hasCameraPermission) takePhotoAndMatch() },
                 containerColor = if (isLoading) MaterialTheme.colorScheme.secondary
-                else if (!isCameraOn) MaterialTheme.colorScheme.surfaceVariant
+                else if (!isCameraOn || !hasCameraPermission) MaterialTheme.colorScheme.surfaceVariant
                 else MaterialTheme.colorScheme.primary
             ) {
                 if (isLoading) {
@@ -293,28 +172,45 @@ fun HomeScreen() {
                     .clipToBounds(),
                 contentAlignment = Alignment.Center
             ) {
-                MjpegStreamView(
-                    streamUrl = streamUrl,
-                    enabled = isCameraOn,
-                    modifier = Modifier.fillMaxSize()
-                )
+                if (isCameraOn && hasCameraPermission) {
+                    CameraPreview(
+                        state = cameraState,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else if (isCameraOn && !hasCameraPermission) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("需要相机权限", color = Color.Gray, fontSize = 16.sp)
+                        Spacer(Modifier.height(8.dp))
+                        Button(onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) }) {
+                            Text("授予权限")
+                        }
+                    }
+                } else {
+                    Text("点击开启摄像头", color = Color.Gray, fontSize = 16.sp)
+                }
 
-                // 摄像头开关\u6309\u94AE
+                // 摄像头开关按钮
                 IconButton(
-                    onClick = { isCameraOn = !isCameraOn },
+                    onClick = {
+                        if (!isCameraOn && !hasCameraPermission) {
+                            permissionLauncher.launch(Manifest.permission.CAMERA)
+                        } else {
+                            isCameraOn = !isCameraOn
+                        }
+                    },
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .padding(12.dp)
                         .size(48.dp)
                         .clip(RoundedCornerShape(24.dp))
                         .background(
-                            if (isCameraOn) Color(0xCC00AA00)
+                            if (isCameraOn && hasCameraPermission) Color(0xCC00AA00)
                             else Color(0xCC555555)
                         )
                 ) {
                     Icon(
                         imageVector = if (isCameraOn) Icons.Filled.Videocam else Icons.Filled.VideocamOff,
-                        contentDescription = if (isCameraOn) "\u5173\u95ED\u6444\u50CF\u5934" else "\u5F00\u542F\u6444\u50CF\u5934",
+                        contentDescription = if (isCameraOn) "关闭摄像头" else "开启摄像头",
                         tint = Color.White,
                         modifier = Modifier.size(28.dp)
                     )

@@ -1,6 +1,10 @@
 package com.memecloud.ui.battle
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.graphics.Color as AndroidColor
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -20,17 +24,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.memecloud.data.api.PlayerResult
 import com.memecloud.data.api.RandomTarget
 import com.memecloud.data.network.RetrofitClient
-import com.memecloud.data.network.ServerConfig
 import com.memecloud.data.network.toFullUrl
 import com.memecloud.data.network.toWsUrl
-import com.memecloud.ui.home.MjpegStreamView
+import com.memecloud.ui.camera.CameraPreview
+import com.memecloud.ui.camera.rememberCameraState
 import kotlinx.coroutines.*
 import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
@@ -51,6 +58,20 @@ fun ImitationContestScreen(onBack: () -> Unit) {
     var countdown by remember { mutableIntStateOf(5) }
     var errorMsg by remember { mutableStateOf("") }
 
+    // ── 摄像头权限 ──
+    var hasCameraPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+                    PackageManager.PERMISSION_GRANTED
+        )
+    }
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted -> hasCameraPermission = granted }
+
+    // CameraX 状态
+    val cameraState = rememberCameraState()
+
     // 目标表情包
     var target by remember { mutableStateOf<RandomTarget?>(null) }
 
@@ -64,8 +85,6 @@ fun ImitationContestScreen(onBack: () -> Unit) {
     var myUserId by remember { mutableIntStateOf(0) }
     var matchId by remember { mutableIntStateOf(0) }
     var opponentReady by remember { mutableStateOf(false) }
-
-    val streamUrl = "/api/match/camera/stream".toFullUrl()
 
     // ── WebSocket 连接 ──
     fun connectWebSocket(userId: Int) {
@@ -148,12 +167,24 @@ fun ImitationContestScreen(onBack: () -> Unit) {
                     return@LaunchedEffect
                 }
                 try {
-                    val r = RetrofitClient.gameApi.cameraSubmit(
-                        targetLabel = t.label,
-                        targetEmojiId = t.emoji_id,
-                        targetImage = t.image_url,
-                        userId = myUserId,
-                        matchId = matchId,
+                    // 手机拍照上传
+                    val fileBytes = cameraState.takePhoto()
+                    if (fileBytes == null) {
+                        errorMsg = "拍照失败，请重试"
+                        phase = ContestPhase.IDLE
+                        return@LaunchedEffect
+                    }
+                    val requestBody = fileBytes.toRequestBody("image/jpeg".toMediaTypeOrNull())
+                    val part = MultipartBody.Part.createFormData("file", "contest.jpg", requestBody)
+                    val targetLabelBody = t.label.toRequestBody("text/plain".toMediaTypeOrNull())
+                    val targetEmojiIdBody = t.emoji_id.toRequestBody("text/plain".toMediaTypeOrNull())
+                    val targetImageBody = t.image_url.toRequestBody("text/plain".toMediaTypeOrNull())
+                    val userIdBody = myUserId.toString().toRequestBody("text/plain".toMediaTypeOrNull())
+                    val matchIdBody = matchId.toString().toRequestBody("text/plain".toMediaTypeOrNull())
+
+                    val r = RetrofitClient.gameApi.submitPhoto(
+                        part, targetLabelBody, targetEmojiIdBody, targetImageBody,
+                        userIdBody, matchIdBody
                     )
                     if (r.isSuccess && r.data != null) {
                         myScore = r.data.score
@@ -242,6 +273,11 @@ fun ImitationContestScreen(onBack: () -> Unit) {
             contentAlignment = Alignment.Center) {
             when (phase) {
                 ContestPhase.IDLE -> IdleView(onStart = {
+                    // 检查权限
+                    if (!hasCameraPermission) {
+                        permissionLauncher.launch(Manifest.permission.CAMERA)
+                        return@IdleView
+                    }
                     errorMsg = ""
                     myUserId = (100..999).random()
                     connectWebSocket(myUserId)
@@ -259,7 +295,9 @@ fun ImitationContestScreen(onBack: () -> Unit) {
                 ContestPhase.PLAYING -> PlayingView(
                     target = target,
                     countdown = countdown,
-                    streamUrl = streamUrl,
+                    cameraState = cameraState,
+                    hasCameraPermission = hasCameraPermission,
+                    permissionLauncher = permissionLauncher,
                     opponentName = opponentName,
                     opponentReady = opponentReady,
                 )
@@ -344,7 +382,9 @@ private fun MatchingView(onCancel: () -> Unit) {
 private fun PlayingView(
     target: RandomTarget?,
     countdown: Int,
-    streamUrl: String,
+    cameraState: com.memecloud.ui.camera.CameraState,
+    hasCameraPermission: Boolean,
+    permissionLauncher: androidx.activity.result.ActivityResultLauncher<String>,
     opponentName: String,
     opponentReady: Boolean,
 ) {
@@ -433,11 +473,28 @@ private fun PlayingView(
                             RoundedCornerShape(bottomStart = 10.dp, bottomEnd = 10.dp))
                         .background(Color.Black)
                 ) {
-                    MjpegStreamView(streamUrl = streamUrl, modifier = Modifier.fillMaxSize())
+                    if (hasCameraPermission) {
+                        CameraPreview(
+                            state = cameraState,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text("需要相机权限", color = Color.White, fontSize = 14.sp)
+                            Spacer(Modifier.height(8.dp))
+                            Button(onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) }) {
+                                Text("授予权限", fontSize = 12.sp)
+                            }
+                        }
+                    }
                 }
             }
 
-            // 对手画面
+            // 对手画面（对手在另一台设备上，显示占位）
             Column(
                 modifier = Modifier.weight(1f).fillMaxHeight(),
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -459,9 +516,15 @@ private fun PlayingView(
                         .border(2.dp,
                             if (opponentReady) Color(0xFF22C55E) else MaterialTheme.colorScheme.secondary,
                             RoundedCornerShape(bottomStart = 10.dp, bottomEnd = 10.dp))
-                        .background(Color.Black)
+                        .background(Color.Black),
+                    contentAlignment = Alignment.Center
                 ) {
-                    MjpegStreamView(streamUrl = streamUrl, modifier = Modifier.fillMaxSize())
+                    Text(
+                        if (opponentReady) "对手已就绪" else "等待对手...",
+                        color = Color.Gray,
+                        fontSize = 14.sp,
+                        textAlign = TextAlign.Center
+                    )
                 }
             }
         }

@@ -14,38 +14,56 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import com.memecloud.data.api.LocalMemeItem
+import com.memecloud.data.network.RetrofitClient
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlin.random.Random
 
-// ─── Mock 弹幕消息 ──────────────────────────────
-
-private data class BarrageMsg(val id: Long, val emoji: String, val sender: String, val yOffset: Float)
-
-private val EMOJIS = listOf("😂", "🤣", "😭", "💀", "🐱", "🐼", "🤡", "🔥", "💩", "😱", "🥹", "😤",
-    "🙄", "😏", "😎", "🫠", "🤯", "🥶", "🤬", "😇", "💀", "👻", "🎃", "😈")
+private data class BarrageMsg(val id: Long, val meme: LocalMemeItem?, val sender: String, val yOffset: Float)
 
 private val SENDERS = listOf("表情帝", "猫奴小王", "摸鱼大师", "斗图冠军", "社恐星人", "干饭王")
 
+private const val BASE_URL = "http://10.0.2.2:9000"
+
 @Composable
 fun BattleRoomScreen(roomId: String, roomName: String, onBack: () -> Unit) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
     var messages by remember { mutableStateOf(listOf<BarrageMsg>()) }
     var msgId by remember { mutableLongStateOf(0L) }
     val onlineCount = remember { mutableIntStateOf(Random.nextInt(5, 35)) }
+    var localMemes by remember { mutableStateOf(listOf<LocalMemeItem>()) }
+
+    // 加载本地表情包
+    LaunchedEffect(Unit) {
+        try {
+            val resp = RetrofitClient.danmakuApi.getLocalMemes()
+            if (resp.isSuccess && resp.data != null) localMemes = resp.data
+        } catch (_: Exception) {}
+    }
 
     // 模拟弹幕消息到达
-    LaunchedEffect(Unit) {
+    LaunchedEffect(localMemes) {
+        if (localMemes.isEmpty()) return@LaunchedEffect
         while (true) {
             delay(Random.nextLong(800, 2500))
+            val meme = localMemes.random()
             messages = (messages + BarrageMsg(
                 id = ++msgId,
-                emoji = EMOJIS.random(),
+                meme = meme,
                 sender = SENDERS.random(),
                 yOffset = Random.nextFloat() * 0.7f
-            )).takeLast(50) // 最多保留50条
+            )).takeLast(50)
         }
     }
 
@@ -69,7 +87,7 @@ fun BattleRoomScreen(roomId: String, roomName: String, onBack: () -> Unit) {
                             color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f))
                     }
                 }
-                IconButton(onClick = { /* TODO: 分享房间 */ }) {
+                IconButton(onClick = { }) {
                     Icon(Icons.Filled.Share, null, tint = MaterialTheme.colorScheme.onPrimary)
                 }
             }
@@ -82,7 +100,6 @@ fun BattleRoomScreen(roomId: String, roomName: String, onBack: () -> Unit) {
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            // 空状态
             if (messages.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text("这个房间还没人说话~\n发个表情包暖暖场吧！",
@@ -90,16 +107,11 @@ fun BattleRoomScreen(roomId: String, roomName: String, onBack: () -> Unit) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-
-            // 弹幕动画
             messages.forEach { msg ->
                 key(msg.id) {
-                    AnimatedBarrage(
-                        msg = msg,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = (msg.yOffset * 400).dp)
-                    )
+                    AnimatedBarrage(context = context, msg = msg, modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = (msg.yOffset * 400).dp))
                 }
             }
         }
@@ -109,31 +121,37 @@ fun BattleRoomScreen(roomId: String, roomName: String, onBack: () -> Unit) {
             color = MaterialTheme.colorScheme.surfaceVariant,
             tonalElevation = 4.dp
         ) {
-            Column(Modifier.padding(12.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    ChipButton("我的表情", Icons.Filled.CollectionsBookmark)
-                    ChipButton("搜索", Icons.Filled.Search)
-                    ChipButton("拍照", Icons.Filled.CameraAlt)
-                }
-                Spacer(Modifier.height(10.dp))
-                // 快捷表情包栏
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(EMOJIS.take(12)) { emoji ->
-                        Surface(
-                            modifier = Modifier.size(48.dp).clip(RoundedCornerShape(10.dp)),
-                            color = MaterialTheme.colorScheme.surface,
-                            onClick = {
-                                messages = (messages + BarrageMsg(
-                                    id = ++msgId, emoji = emoji,
-                                    sender = "我", yOffset = Random.nextFloat() * 0.7f
-                                )).takeLast(50)
-                            }
-                        ) {
-                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Text(emoji, fontSize = 24.sp)
+            Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                if (localMemes.isEmpty()) {
+                    Box(Modifier.fillMaxWidth().height(64.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                    }
+                } else {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(localMemes) { meme ->
+                            Surface(
+                                modifier = Modifier.size(64.dp).clip(RoundedCornerShape(10.dp)),
+                                color = MaterialTheme.colorScheme.surface,
+                                onClick = {
+                                    scope.launch {
+                                        messages = (messages + BarrageMsg(
+                                            id = ++msgId,
+                                            meme = meme,
+                                            sender = "我",
+                                            yOffset = Random.nextFloat() * 0.7f
+                                        )).takeLast(50)
+                                    }
+                                }
+                            ) {
+                                AsyncImage(
+                                    model = ImageRequest.Builder(context)
+                                        .data("$BASE_URL${meme.thumbnailUrl}")
+                                        .crossfade(true)
+                                        .build(),
+                                    contentDescription = meme.description,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
                             }
                         }
                     }
@@ -144,7 +162,11 @@ fun BattleRoomScreen(roomId: String, roomName: String, onBack: () -> Unit) {
 }
 
 @Composable
-private fun AnimatedBarrage(msg: BarrageMsg, modifier: Modifier) {
+private fun AnimatedBarrage(
+    context: android.content.Context,
+    msg: BarrageMsg,
+    modifier: Modifier
+) {
     val offsetX = remember { Animatable(1000f) }
 
     LaunchedEffect(msg.id) {
@@ -166,22 +188,19 @@ private fun AnimatedBarrage(msg: BarrageMsg, modifier: Modifier) {
             .padding(horizontal = 10.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(msg.emoji, fontSize = 28.sp)
+        msg.meme?.let {
+            AsyncImage(
+                model = ImageRequest.Builder(context)
+                    .data("$BASE_URL${it.thumbnailUrl}")
+                    .crossfade(true)
+                    .build(),
+                contentDescription = it.description,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.size(40.dp).clip(RoundedCornerShape(6.dp))
+            )
+        }
         Spacer(Modifier.width(6.dp))
         Text(msg.sender, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
-@Composable
-private fun ChipButton(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector) {
-    AssistChip(
-        onClick = { },
-        label = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(icon, null, Modifier.size(16.dp))
-                Spacer(Modifier.width(4.dp))
-                Text(label, fontSize = 12.sp)
-            }
-        }
-    )
-}

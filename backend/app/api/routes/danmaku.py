@@ -156,6 +156,22 @@ async def upload_emoji(file: UploadFile = File(...), description: str = Form(def
     db.add(emoji); db.commit(); db.refresh(emoji)
     return ApiResponse(msg='upload success', data={'id': emoji.id, 'file_url': emoji.file_url, 'thumbnail_url': emoji.thumbnail_url})
 
+@router.get("/memes/local", response_model=ApiResponse)
+def list_local_memes():
+    """List all meme files from the meme_match/memes/ directory (no auth required)."""
+    memes = []
+    if MEME_IMG_DIR.exists():
+        for i, f in enumerate(sorted(MEME_IMG_DIR.iterdir())):
+            if f.suffix.lower() in (".jpg", ".jpeg", ".png", ".gif", ".webp"):
+                memes.append({
+                    "id": f"local_{i}",
+                    "file_url": f"/static/memes/{f.name}",
+                    "thumbnail_url": f"/static/memes/{f.name}",
+                    "description": f.stem,
+                })
+    return ApiResponse(msg="ok", data=memes)
+
+
 
 @router.websocket("/ws/{room_id}")
 async def websocket_endpoint(websocket: WebSocket, room_id: int, token: str = ''):
@@ -192,12 +208,12 @@ async def websocket_endpoint(websocket: WebSocket, room_id: int, token: str = ''
             if raw.get('type') == 'ping':
                 await websocket.send_json({'type': 'pong'})
             elif raw.get('type') == 'send_meme':
-                emoji_id = raw.get('emoji_id')
-                emoji_url = raw.get('emoji_url', '')
-                if not emoji_id:
-                    await websocket.send_json({'type': 'error', 'data': {'message': 'missing emoji_id'}})
+                meme_id = raw.get('meme_id')
+                meme_url = raw.get('meme_url', '')
+                if not meme_id:
+                    await websocket.send_json({'type': 'error', 'data': {'message': 'missing meme_id'}})
                     continue
-                result = await room_manager.send_meme(room_id=room_id, user_id=user.id, emoji_id=emoji_id, emoji_url=emoji_url)
+                result = await room_manager.send_meme(room_id=room_id, user_id=user.id, meme_id=meme_id, meme_url=meme_url)
                 if result is None:
                     await websocket.send_json({'type': 'error', 'data': {'message': 'rate limited, 1 per second'}})
                 elif 'error' in result:

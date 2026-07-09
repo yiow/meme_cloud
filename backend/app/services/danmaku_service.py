@@ -52,8 +52,8 @@ class MemeMessage:
     username: str
     nickname: str | None
     avatar_url: str | None
-    emoji_id: int
-    emoji_url: str
+    meme_id: str
+    meme_url: str
     timestamp: float = field(default_factory=time.time)
 
 
@@ -231,8 +231,8 @@ class RoomManager:
                     "nickname": m.nickname,
                     "avatar_url": m.avatar_url,
                 },
-                "emoji_id": m.emoji_id,
-                "emoji_url": m.emoji_url,
+                "meme_id": m.meme_id,
+                "meme_url": m.meme_url,
                 "timestamp": m.timestamp,
             })
 
@@ -268,8 +268,8 @@ class RoomManager:
         self,
         room_id: int,
         user_id: int,
-        emoji_id: int,
-        emoji_url: str,
+        meme_id: str,
+        meme_url: str,
     ) -> dict | None:
         """发送表情包弹幕，返回None表示被限流"""
         async with self._lock:
@@ -292,8 +292,8 @@ class RoomManager:
                 username=ru.username,
                 nickname=ru.nickname,
                 avatar_url=ru.avatar_url,
-                emoji_id=emoji_id,
-                emoji_url=emoji_url,
+                meme_id=meme_id,
+                meme_url=meme_url,
             )
             room.add_history(msg)
             room.last_active_at = time.time()
@@ -307,8 +307,8 @@ class RoomManager:
                     "nickname": ru.nickname,
                     "avatar_url": ru.avatar_url,
                 },
-                "emoji_id": emoji_id,
-                "emoji_url": emoji_url,
+                "meme_id": meme_id,
+                "meme_url": meme_url,
                 "timestamp": msg.timestamp,
             },
         }

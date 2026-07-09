@@ -24,6 +24,7 @@ async def lifespan(app: FastAPI):
     yield
     webcam_service.stop_webcam()
 
+from app.api.routes import auth, community, social
 
 app = FastAPI(
     title="表情云库 API",
@@ -47,7 +48,8 @@ if MEME_IMG_DIR.exists():
 
 # 路由
 app.include_router(auth.router)
-app.include_router(match.router)
+app.include_router(community.router)
+app.include_router(social.router)
 
 
 @app.get("/")

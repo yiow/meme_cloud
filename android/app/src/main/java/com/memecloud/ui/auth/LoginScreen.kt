@@ -1,5 +1,6 @@
 package com.memecloud.ui.auth
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -15,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -35,6 +37,7 @@ fun LoginScreen(
     onGoRegister: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
@@ -145,6 +148,12 @@ fun LoginScreen(
                             RetrofitClient.authApi.login(LoginRequest(username, password))
                         }
                         if (response.isSuccess && response.data != null) {
+                            // 保存 token
+                            context.getSharedPreferences("memecloud", Context.MODE_PRIVATE)
+                                .edit()
+                                .putString("auth_token", response.data.token)
+                                .apply()
+                            RetrofitClient.authToken = response.data.token
                             onLoginSuccess()
                         } else {
                             errorMessage = response.msg.ifBlank { "登录失败" }

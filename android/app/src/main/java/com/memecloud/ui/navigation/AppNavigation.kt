@@ -16,10 +16,7 @@ import com.memecloud.ui.auth.RegisterScreen
 import com.memecloud.ui.battle.BattleRoomScreen
 import com.memecloud.ui.battle.BattleScreen
 import com.memecloud.ui.battle.ImitationContestScreen
-import com.memecloud.ui.community.BountyScreen
-import com.memecloud.ui.community.CommunityScreen
-import com.memecloud.ui.community.RankingScreen
-import com.memecloud.ui.community.TopicChallengeScreen
+import com.memecloud.ui.community.*
 import com.memecloud.ui.home.HomeScreen
 import com.memecloud.ui.profile.FollowScreen
 import com.memecloud.ui.profile.ProfileScreen
@@ -33,10 +30,9 @@ fun AppNavigation(
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
 
-    // 哪些页面不显示底部导航栏
     val hideBottomBar = currentRoute in listOf(
         Routes.LOGIN, Routes.REGISTER, Routes.MEME_DETAIL,
-        Routes.RANKING, Routes.TOPIC_CHALLENGE, Routes.BOUNTY,
+        Routes.RANKING, Routes.TOPIC_CHALLENGE, Routes.BOUNTY, Routes.PUBLISH,
         Routes.BATTLE_ROOM, Routes.IMITATION_CONTEST, Routes.FOLLOW
     )
 
@@ -105,7 +101,8 @@ fun AppNavigation(
                     onGoRanking = { navController.navigate(Routes.RANKING) },
                     onGoChallenge = { navController.navigate(Routes.TOPIC_CHALLENGE) },
                     onGoBounty = { navController.navigate(Routes.BOUNTY) },
-                    onGoPublish = { /* TODO: 创作发布页 */ }
+                    onGoPublish = { navController.navigate(Routes.PUBLISH) },
+                    onGoDetail = { postId -> navController.navigate("meme_detail/$postId") }
                 )
             }
 
@@ -130,8 +127,36 @@ fun AppNavigation(
             }
 
             // ── 社区子页面 ──
+            composable(
+                "meme_detail/{postId}",
+                arguments = listOf(navArgument("postId") { type = NavType.LongType })
+            ) { entry ->
+                val postId = entry.arguments?.getLong("postId") ?: 0L
+                MemeDetailScreen(
+                    postId = postId,
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(Routes.PUBLISH) {
+                PublishScreen(
+                    onBack = { navController.popBackStack() },
+                    onPublishSuccess = {
+                        navController.popBackStack()
+                        navController.navigate(Screen.Community.route) {
+                            popUpTo(Screen.Home.route) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                )
+            }
+
             composable(Routes.RANKING) {
-                RankingScreen(onBack = { navController.popBackStack() })
+                RankingScreen(
+                    onBack = { navController.popBackStack() },
+                    onGoDetail = { postId -> navController.navigate("meme_detail/$postId") }
+                )
             }
             composable(Routes.TOPIC_CHALLENGE) {
                 TopicChallengeScreen(onBack = { navController.popBackStack() })
@@ -163,15 +188,6 @@ fun AppNavigation(
             // ── 个人中心子页面 ──
             composable(Routes.FOLLOW) {
                 FollowScreen(onBack = { navController.popBackStack() })
-            }
-
-            // ── 预留 ──
-            composable(
-                Routes.MEME_DETAIL,
-                arguments = listOf(navArgument("memeId") { type = NavType.StringType })
-            ) { entry ->
-                val memeId = entry.arguments?.getString("memeId") ?: ""
-                Text("表情包详情: $memeId")
             }
         }
     }

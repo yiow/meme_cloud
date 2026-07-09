@@ -4,6 +4,7 @@ import com.memecloud.data.api.AuthApi
 import com.memecloud.data.api.DanmakuApi
 import com.memecloud.data.api.MatchApi
 import com.memecloud.data.api.MemeApi
+import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -21,11 +22,28 @@ object RetrofitClient {
     // ⚠️ 真机调试时改为你的电脑 IP
      private const val BASE_URL = "http://10.0.2.2:9000/"
 
+    /** 当前登录用户的 Token，登录成功后由外部设置 */
+    var authToken: String? = null
+
+    private val authInterceptor = Interceptor { chain ->
+        val request = chain.request()
+        val token = authToken
+        if (token != null) {
+            val newRequest = request.newBuilder()
+                .header("Authorization", "Bearer $token")
+                .build()
+            chain.proceed(newRequest)
+        } else {
+            chain.proceed(request)
+        }
+    }
+
     private val okHttpClient: OkHttpClient by lazy {
         val logging = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
         }
         OkHttpClient.Builder()
+            .addInterceptor(authInterceptor)
             .addInterceptor(logging)
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(15, TimeUnit.SECONDS)

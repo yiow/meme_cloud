@@ -6,6 +6,7 @@ from sqlalchemy import and_, func, select
 from sqlalchemy.orm import Session
 
 from app.models.community import Comment, CommunityPost, Like
+from app.models.social import Follow
 from app.schemas.community import (
     AuthorBrief,
     CommentBrief,
@@ -67,7 +68,13 @@ def get_feed(
     base = select(CommunityPost).where(CommunityPost.is_deleted == False)
 
     if sort == "follow" and current_user_id:
-        base = base.where(CommunityPost.user_id == 0)  # 关注流暂时空结果
+        following_ids = db.execute(
+            select(Follow.following_id).where(Follow.follower_id == current_user_id)
+        ).scalars().all()
+        if following_ids:
+            base = base.where(CommunityPost.user_id.in_(following_ids))
+        else:
+            base = base.where(CommunityPost.user_id == 0)  # 没关注任何人时返回空
     elif sort == "recommend":
         base = base.order_by(CommunityPost.like_count.desc(), CommunityPost.created_at.desc())
     else:

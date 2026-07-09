@@ -3,7 +3,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import auth, community
+from app.api.routes import auth, community, social
 
 app = FastAPI(
     title="表情云库 API",
@@ -23,6 +23,7 @@ app.add_middleware(
 # 注册路由
 app.include_router(auth.router)
 app.include_router(community.router)
+app.include_router(social.router)
 
 
 @app.get("/")

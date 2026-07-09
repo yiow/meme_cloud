@@ -149,6 +149,11 @@ fun CommunityScreen(
                                     }
                                 } catch (_: Exception) { }
                             }
+                        },
+                        onToggleFollow = {
+                            scope.launch {
+                                try { api.toggleFollow(post.author.id) } catch (_: Exception) { }
+                            }
                         }
                     )
                 }
@@ -221,7 +226,8 @@ private fun MemeCard(
     post: PostBrief,
     onClick: () -> Unit,
     onDelete: () -> Unit,
-    onToggleLike: () -> Unit
+    onToggleLike: () -> Unit,
+    onToggleFollow: () -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
@@ -256,6 +262,22 @@ private fun MemeCard(
                         fontSize = 12.sp, fontWeight = FontWeight.Bold,
                         maxLines = 1, overflow = TextOverflow.Ellipsis
                     )
+                    // 关注按钮
+                    var showFollow by remember { mutableStateOf(true) }
+                    var followLoading by remember { mutableStateOf(false) }
+                    if (showFollow) {
+                        TextButton(
+                            onClick = {
+                                followLoading = true
+                                onToggleFollow()
+                                showFollow = false
+                            },
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
+                            modifier = Modifier.height(24.dp)
+                        ) {
+                            Text("+ 关注", fontSize = 10.sp, color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
                     if (!post.caption.isNullOrBlank()) {
                         Text(
                             post.caption, fontSize = 11.sp,

@@ -153,7 +153,10 @@ fun AppNavigation(
             }
 
             composable(Routes.RANKING) {
-                RankingScreen(onBack = { navController.popBackStack() })
+                RankingScreen(
+                    onBack = { navController.popBackStack() },
+                    onGoDetail = { postId -> navController.navigate("meme_detail/$postId") }
+                )
             }
             composable(Routes.TOPIC_CHALLENGE) {
                 TopicChallengeScreen(onBack = { navController.popBackStack() })

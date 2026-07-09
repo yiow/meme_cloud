@@ -38,6 +38,8 @@ fun MemeDetailScreen(
     var isLoading by remember { mutableStateOf(true) }
     var commentText by remember { mutableStateOf("") }
     var isSendingComment by remember { mutableStateOf(false) }
+    var isFollowing by remember { mutableStateOf(false) }
+    var isFollowLoading by remember { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -48,7 +50,21 @@ fun MemeDetailScreen(
             isLoading = true
             try {
                 val result = api.getPostDetail(postId)
-                if (result.isSuccess) detail = result.data
+                if (result.isSuccess) {
+                    detail = result.data
+                    // 检查是否已关注该作者
+                    val detailData = result.data!!
+                    try {
+                        val meRes = api.getMyProfile()
+                        if (meRes.isSuccess && meRes.data != null) {
+                            val myId = meRes.data.id
+                            val followRes = api.getFollowing(myId)
+                            if (followRes.isSuccess && followRes.data != null) {
+                                isFollowing = followRes.data.items.any { it.id == detailData.author.id }
+                            }
+                        }
+                    } catch (_: Exception) { }
+                }
             } catch (e: HttpException) {
                 Toast.makeText(context, "加载失败: ${e.code()}", Toast.LENGTH_SHORT).show()
             } catch (_: Exception) { }
@@ -160,12 +176,54 @@ fun MemeDetailScreen(
                     Icon(Icons.Filled.AccountCircle, null, Modifier.size(36.dp),
                         tint = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.width(8.dp))
-                    Column {
+                    Column(Modifier.weight(1f)) {
                         Text(d.author.nickname ?: d.author.username,
                             fontWeight = FontWeight.Bold, fontSize = 15.sp)
                         Text(d.createdAt.take(16).replace("T", " "),
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    // 关注按钮
+                    if (d.author.id > 0) {
+                        if (isFollowLoading) {
+                            CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                        } else {
+                            if (isFollowing) {
+                                OutlinedButton(
+                                    onClick = {
+                                        isFollowLoading = true
+                                        scope.launch {
+                                            try {
+                                                val r = api.toggleFollow(d.author.id)
+                                                if (r.isSuccess) {
+                                                    isFollowing = r.data?.isFollowed ?: false
+                                                }
+                                            } catch (_: Exception) { }
+                                            isFollowLoading = false
+                                        }
+                                    },
+                                    shape = RoundedCornerShape(16.dp),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                                ) { Text("已关注", fontSize = 12.sp) }
+                            } else {
+                                Button(
+                                    onClick = {
+                                        isFollowLoading = true
+                                        scope.launch {
+                                            try {
+                                                val r = api.toggleFollow(d.author.id)
+                                                if (r.isSuccess) {
+                                                    isFollowing = r.data?.isFollowed ?: false
+                                                }
+                                            } catch (_: Exception) { }
+                                            isFollowLoading = false
+                                        }
+                                    },
+                                    shape = RoundedCornerShape(16.dp),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                                ) { Text("+ 关注", fontSize = 12.sp) }
+                            }
+                        }
                     }
                 }
 

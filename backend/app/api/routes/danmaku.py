@@ -3,6 +3,7 @@ import hashlib
 import logging
 import os as _os
 from pathlib import Path
+from urllib.parse import quote
 from fastapi import APIRouter, Depends, Header, Query, UploadFile, File, Form, WebSocket, WebSocketDisconnect
 from sqlalchemy import select, or_
 from sqlalchemy.orm import Session
@@ -163,10 +164,11 @@ def list_local_memes():
     if MEME_IMG_DIR.exists():
         for i, f in enumerate(sorted(MEME_IMG_DIR.iterdir())):
             if f.suffix.lower() in (".jpg", ".jpeg", ".png", ".gif", ".webp"):
+                encoded_name = quote(f.name)
                 memes.append({
                     "id": f"local_{i}",
-                    "file_url": f"/static/memes/{f.name}",
-                    "thumbnail_url": f"/static/memes/{f.name}",
+                    "file_url": f"/static/memes/{encoded_name}",
+                    "thumbnail_url": f"/static/memes/{encoded_name}",
                     "description": f.stem,
                 })
     return ApiResponse(msg="ok", data=memes)

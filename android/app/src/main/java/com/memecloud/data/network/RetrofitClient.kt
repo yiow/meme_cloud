@@ -1,7 +1,6 @@
 package com.memecloud.data.network
 
 import com.memecloud.data.api.AuthApi
-<<<<<<< HEAD
 import com.memecloud.data.api.DanmakuApi
 import com.memecloud.data.api.GameApi
 import com.memecloud.data.api.MatchApi

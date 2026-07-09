@@ -1,6 +1,6 @@
 """Pydantic 请求/响应模型"""
 
-from typing import Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
@@ -42,4 +42,4 @@ class ApiResponse(BaseModel):
     """通用 API 响应"""
     code: int = 0
     msg: str = "ok"
-    data: Optional[dict] = None
+    data: Optional[Any] = None

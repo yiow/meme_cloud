@@ -1,7 +1,9 @@
 package com.memecloud.data.network
 
 import com.memecloud.data.api.AuthApi
+<<<<<<< HEAD
 import com.memecloud.data.api.DanmakuApi
+import com.memecloud.data.api.GameApi
 import com.memecloud.data.api.MatchApi
 import com.memecloud.data.api.MemeApi
 import okhttp3.Interceptor
@@ -19,8 +21,8 @@ import java.util.concurrent.TimeUnit
  */
 object RetrofitClient {
 
-    // ⚠️ 真机调试时改为你的电脑 IP
-     private const val BASE_URL = "http://10.0.2.2:9000/"
+    private val BASE_URL = "${ServerConfig.BASE_URL}/"
+
 
     /** 当前登录用户的 Token，登录成功后由外部设置 */
     var authToken: String? = null
@@ -63,4 +65,5 @@ object RetrofitClient {
     val memeApi: MemeApi by lazy { retrofit.create(MemeApi::class.java) }
     val matchApi: MatchApi by lazy { retrofit.create(MatchApi::class.java) }
     val danmakuApi: DanmakuApi by lazy { retrofit.create(DanmakuApi::class.java) }
+    val gameApi: GameApi by lazy { retrofit.create(GameApi::class.java) }
 }

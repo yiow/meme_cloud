@@ -30,6 +30,8 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.memecloud.data.api.SearchResult
 import com.memecloud.data.network.RetrofitClient
+import com.memecloud.data.network.ServerConfig
+import com.memecloud.data.network.toFullUrl
 import kotlinx.coroutines.*
 import java.net.HttpURLConnection
 import java.net.URL
@@ -204,7 +206,7 @@ fun HomeScreen() {
     val searchFocusRequester = remember { FocusRequester() }
 
     val scope = rememberCoroutineScope()
-    val streamUrl = "http://10.0.2.2:9000/api/match/camera/stream"
+    val streamUrl = "/api/match/camera/stream".toFullUrl()
 
     // ── 标签搜索 ──
     fun performSearch(query: String) {
@@ -405,7 +407,7 @@ fun HomeScreen() {
                         ) {
                             AsyncImage(
                                 model = ImageRequest.Builder(context)
-                                    .data("http://10.0.2.2:9000${result.images.firstOrNull() ?: ""}")
+                                    .data("${(result.images.firstOrNull() ?: "").toFullUrl()}")
                                     .crossfade(true)
                                     .build(),
                                 contentDescription = result.label,
@@ -467,7 +469,7 @@ fun HomeScreen() {
                                 items(matchedImages) { img ->
                                     AsyncImage(
                                         model = ImageRequest.Builder(context)
-                                            .data("http://10.0.2.2:9000${img}")
+                                            .data(img.toFullUrl())
                                             .crossfade(true)
                                             .build(),
                                         contentDescription = null,
@@ -482,7 +484,7 @@ fun HomeScreen() {
                             Spacer(Modifier.height(4.dp))
                             AsyncImage(
                                 model = ImageRequest.Builder(context)
-                                    .data("http://10.0.2.2:9000${matchedImageUrl}")
+                                    .data((matchedImageUrl ?: "").toFullUrl())
                                     .crossfade(true)
                                     .build(),
                                 contentDescription = null,

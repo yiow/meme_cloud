@@ -1,7 +1,7 @@
 """
 表情包匹配引擎 — 文件驱动 KNN 分类器
 
-加载 meme-labels.json 作为标签定义，从 default.json / default_expr.json 读取训练样本。
+加载 meme-labels.json 作为标签定义，从 default.json (= gesto_custom_v1_backup.json) 读取训练样本。
 算法与前端 index.html 一致：欧氏距离 + k=7 + 阈值 + 投票窗口。
 """
 
@@ -71,11 +71,22 @@ def init_matcher():
         for v in vectors:
             GESTURE_SAMPLES.append((label, v))
 
-    # 自定义手势样本（default.json）
-    CUSTOM_GESTURE = _load_json(MEME_DIR / "default.json")
-
-    # 自定义表情样本（default_expr.json）
-    CUSTOM_EXPR = _load_json(MEME_DIR / "default_expr.json")
+    # 自定义样本（default.json = gesto_custom_v1_backup.json，已合并手势+表情）
+    _all_custom = _load_json(MEME_DIR / "default.json")
+    # 按标签池拆分手势/表情；池外标签按特征维度自动归类（22-dim→手势, 52-dim→表情）
+    CUSTOM_GESTURE = {}
+    CUSTOM_EXPR = {}
+    for k, v in _all_custom.items():
+        if k in EXPR_POOL:
+            CUSTOM_EXPR[k] = v
+        elif k in GESTURE_POOL:
+            CUSTOM_GESTURE[k] = v
+        else:
+            dim = len(v["samples"][0]) if v.get("samples") else 0
+            if dim > 30:
+                CUSTOM_EXPR[k] = v
+            else:
+                CUSTOM_GESTURE[k] = v
 
 
 def _all_samples(mode: str) -> list[tuple[str, list[float]]]:
@@ -218,17 +229,19 @@ def classify(feature: list[float], mode: str = "gesture") -> dict:
 
 
 def record_sample(mode: str, label: str, samples: list[list[float]], img: str | None = None):
-    """录入手势/表情样本"""
+    """录入手势/表情样本 — 统一保存到 default.json"""
     if mode == "expr":
         if label not in CUSTOM_EXPR:
             CUSTOM_EXPR[label] = {"nombre": label, "img": img, "samples": []}
         CUSTOM_EXPR[label]["samples"].extend(samples)
-        _save_json(MEME_DIR / "default_expr.json", CUSTOM_EXPR)
     else:
         if label not in CUSTOM_GESTURE:
             CUSTOM_GESTURE[label] = {"nombre": label, "img": img, "samples": []}
         CUSTOM_GESTURE[label]["samples"].extend(samples)
-        _save_json(MEME_DIR / "default.json", CUSTOM_GESTURE)
+    # 合并保存（default.json = gesto_custom_v1_backup.json）
+    merged = dict(CUSTOM_GESTURE)
+    merged.update(CUSTOM_EXPR)
+    _save_json(MEME_DIR / "default.json", merged)
 
 
 def get_labels(mode: str) -> list[dict]:

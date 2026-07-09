@@ -24,6 +24,8 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.memecloud.data.api.LocalMemeItem
 import com.memecloud.data.network.RetrofitClient
+import com.memecloud.data.network.ServerConfig
+import com.memecloud.data.network.toFullUrl
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.random.Random
@@ -31,8 +33,6 @@ import kotlin.random.Random
 private data class BarrageMsg(val id: Long, val meme: LocalMemeItem?, val sender: String, val lane: Int)
 
 private val SENDERS = listOf("表情帝", "猫奴小王", "摸鱼大师", "斗图冠军", "社恐星人", "干饭王")
-
-private const val BASE_URL = "http://10.0.2.2:9000"
 
 private const val LANE_COUNT = 6
 
@@ -163,7 +163,7 @@ fun BattleRoomScreen(roomId: String, roomName: String, onBack: () -> Unit) {
                             ) {
                                 AsyncImage(
                                     model = ImageRequest.Builder(context)
-                                        .data("$BASE_URL${meme.thumbnailUrl}")
+                                        .data(meme.thumbnailUrl.toFullUrl())
                                         .crossfade(true)
                                         .build(),
                                     contentDescription = meme.description,
@@ -213,7 +213,7 @@ private fun AnimatedBarrage(
         msg.meme?.let {
             AsyncImage(
                 model = ImageRequest.Builder(context)
-                    .data("$BASE_URL${it.thumbnailUrl}")
+                    .data(it.thumbnailUrl.toFullUrl())
                     .crossfade(true)
                     .build(),
                 contentDescription = it.description,

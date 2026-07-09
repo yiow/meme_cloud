@@ -8,11 +8,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.api.routes import auth, match
+from app.api.routes import auth, danmaku, match
 from app.services import matcher, mediapipe_extractor, webcam_service
 
 # 表情包图片目录
 MEME_IMG_DIR = Path(__file__).resolve().parent.parent.parent / "meme_match" / "memes"
+DANMAKU_DIR = Path(__file__).resolve().parent.parent.parent / "danmaku"
 
 
 @asynccontextmanager
@@ -45,9 +46,13 @@ app.add_middleware(
 # 静态文件 — 表情包图片
 if MEME_IMG_DIR.exists():
     app.mount("/static/memes", StaticFiles(directory=str(MEME_IMG_DIR)), name="memes")
+if DANMAKU_DIR.exists():
+    app.mount("/danmaku", StaticFiles(directory=str(DANMAKU_DIR), html=True), name="danmaku")
 
 # 路由
 app.include_router(auth.router)
+app.include_router(danmaku.router)
+app.include_router(match.router)
 app.include_router(community.router)
 app.include_router(social.router)
 
@@ -60,3 +65,4 @@ def root():
 @app.get("/health")
 def health():
     return {"status": "ok"}
+DANMAKU_DIR = Path(__file__).resolve().parent.parent.parent / "danmaku"

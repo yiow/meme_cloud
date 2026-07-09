@@ -204,7 +204,7 @@ fun HomeScreen() {
     val searchFocusRequester = remember { FocusRequester() }
 
     val scope = rememberCoroutineScope()
-    val streamUrl = "http://10.0.2.2:8001/api/match/camera/stream"
+    val streamUrl = "http://10.0.2.2:9000/api/match/camera/stream"
 
     // ── 标签搜索 ──
     fun performSearch(query: String) {
@@ -405,7 +405,7 @@ fun HomeScreen() {
                         ) {
                             AsyncImage(
                                 model = ImageRequest.Builder(context)
-                                    .data("http://10.0.2.2:8001${result.images.firstOrNull() ?: ""}")
+                                    .data("http://10.0.2.2:9000${result.images.firstOrNull() ?: ""}")
                                     .crossfade(true)
                                     .build(),
                                 contentDescription = result.label,
@@ -467,7 +467,7 @@ fun HomeScreen() {
                                 items(matchedImages) { img ->
                                     AsyncImage(
                                         model = ImageRequest.Builder(context)
-                                            .data("http://10.0.2.2:8001${img}")
+                                            .data("http://10.0.2.2:9000${img}")
                                             .crossfade(true)
                                             .build(),
                                         contentDescription = null,
@@ -482,7 +482,7 @@ fun HomeScreen() {
                             Spacer(Modifier.height(4.dp))
                             AsyncImage(
                                 model = ImageRequest.Builder(context)
-                                    .data("http://10.0.2.2:8001${matchedImageUrl}")
+                                    .data("http://10.0.2.2:9000${matchedImageUrl}")
                                     .crossfade(true)
                                     .build(),
                                 contentDescription = null,

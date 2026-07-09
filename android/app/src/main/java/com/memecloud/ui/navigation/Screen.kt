@@ -61,9 +61,13 @@ object Routes {
     const val BOUNTY = "bounty"
 
     // 斗图子页
-    const val BATTLE_ROOM = "battle_room"
+    const val BATTLE_ROOM_BASE = "battle_room"
+    const val BATTLE_ROOM = "battle_room/{roomId}/{roomName}"
     const val IMITATION_CONTEST = "imitation_contest"
 
     // 个人中心子页
+    /** 拼装带参数的斗图室路由 */
+    fun battleRoom(roomId: String, roomName: String): String =
+        "battle_room/${java.net.URLEncoder.encode(roomId, "UTF-8")}/${java.net.URLEncoder.encode(roomName, "UTF-8")}"
     const val FOLLOW = "follow"
 }

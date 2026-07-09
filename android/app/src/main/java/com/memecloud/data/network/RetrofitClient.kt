@@ -1,6 +1,7 @@
 package com.memecloud.data.network
 
 import com.memecloud.data.api.AuthApi
+import com.memecloud.data.api.DanmakuApi
 import com.memecloud.data.api.MatchApi
 import com.memecloud.data.api.MemeApi
 import okhttp3.Interceptor
@@ -61,4 +62,5 @@ object RetrofitClient {
     val authApi: AuthApi by lazy { retrofit.create(AuthApi::class.java) }
     val memeApi: MemeApi by lazy { retrofit.create(MemeApi::class.java) }
     val matchApi: MatchApi by lazy { retrofit.create(MatchApi::class.java) }
+    val danmakuApi: DanmakuApi by lazy { retrofit.create(DanmakuApi::class.java) }
 }

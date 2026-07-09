@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meme Battle Room</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #0f0f23; --surface: #1a1a3e; --surface2: #252550;
+  --primary: #ff6b6b; --accent: #ffd93d; --text: #e0e0ff;
+  --text2: #8888aa; --border: #333366; --success: #6bcb6b; --error: #ff4757;
+}
+html,body{ margin:0; height:100%; overflow:hidden; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+button{ cursor:pointer; border:none; border-radius:8px; padding:8px 16px; font-size:14px; font-weight:600; transition:all 0.2s; }
+button:hover{ transform:translateY(-1px); filter:brightness(1.15); }
+button.btn-primary{ background:var(--primary); color:#fff; }
+button.btn-accent{ background:var(--accent); color:#1a1a3e; }
+button.btn-surface{ background:var(--surface2); color:var(--text); }
+button.btn-success{ background:var(--success); color:#fff; }
+button:disabled{ opacity:0.5; cursor:not-allowed; transform:none; }
+input[type="text"],input[type="search"]{ background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; color:var(--text); font-size:14px; outline:none; transition:border 0.2s; width:100%; }
+input:focus{ border-color:var(--primary); }
+::-webkit-scrollbar{ width:6px; }
+::-webkit-scrollbar-track{ background:var(--surface); }
+::-webkit-scrollbar-thumb{ background:var(--border); border-radius:3px; }
+.lobby{ height:100vh; display:flex; flex-direction:column; padding:20px; }
+.lobby-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+.lobby-header h1{ font-size:24px; background:linear-gradient(135deg,var(--primary),var(--accent)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.lobby-actions{ display:flex; gap:8px; align-items:center; }
+.lobby-search{ display:flex; gap:8px; margin-bottom:16px; }
+.lobby-search input{ flex:1; }
+.room-grid{ flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:12px; padding:4px; }
+.room-card{ background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; transition:all 0.2s; }
+.room-card:hover{ border-color:var(--primary); transform:translateY(-2px); box-shadow:0 4px 20px rgba(255,107,107,0.15); }
+.room-card h3{ font-size:16px; margin-bottom:8px; }
+.room-card .meta{ display:flex; gap:12px; font-size:12px; color:var(--text2); margin-bottom:12px; }
+.room-card .meta span{ display:flex; align-items:center; gap:4px; }
+.room-card .enter-btn{ width:100%; }
+.empty-state{ display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:var(--text2); gap:12px; }
+.empty-state h2{ font-size:20px; }
+.login-overlay{ position:fixed; inset:0; background:rgba(0,0,0,0.7); display:flex; align-items:center; justify-content:center; z-index:1000; }
+.login-box{ background:var(--surface); border-radius:16px; padding:32px; width:340px; border:1px solid var(--border); }
+.login-box h2{ margin-bottom:20px; text-align:center; }
+.login-box .field{ margin-bottom:12px; }
+.login-box .field label{ display:block; font-size:12px; color:var(--text2); margin-bottom:4px; }
+.login-box .btn-row{ display:flex; gap:8px; margin-top:16px; }
+.login-box .btn-row button{ flex:1; }
+.login-box .error{ color:var(--error); font-size:12px; margin-top:8px; text-align:center; }
+.room-view{ height:100vh; display:flex; flex-direction:column; }
+.room-topbar{ display:flex; justify-content:space-between; align-items:center; padding:10px 16px; background:var(--surface); border-bottom:1px solid var(--border); }
+.room-topbar .left{ display:flex; align-items:center; gap:12px; }
+.room-topbar .left h2{ font-size:16px; }
+.room-topbar .status{ font-size:12px; color:var(--text2); }
+.room-topbar .status .dot{ display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px; }
+.room-topbar .status .dot.active{ background:var(--success); }
+.room-body{ flex:1; display:flex; overflow:hidden; }
+.danmaku-stage{ flex:1; position:relative; overflow:hidden; background:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2220%22 height=%2220%22><rect width=%2220%22 height=%2220%22 fill=%22%23141430%22/><rect x=%221%22 y=%221%22 width=%2218%22 height=%2218%22 fill=%22%231a1a3e%22/></svg>'); }
+.danmaku-item{ position:absolute; right:-150px; will-change:transform,right; display:flex; flex-direction:column; align-items:center; gap:4px; }
+.danmaku-item .user-name{ font-size:11px; color:var(--accent); max-width:100px; overflow:hidden; text-overflow:ellipsis; text-align:center; line-height:1.2; }
+.danmaku-item img{ height:56px; border-radius:4px; box-shadow:0 2px 8px rgba(0,0,0,0.3); }
+.danmaku-empty{ position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:var(--text2); text-align:center; font-size:14px; }
+.room-sidebar{ width:260px; background:var(--surface); border-left:1px solid var(--border); display:flex; flex-direction:column; }
+.sidebar-tabs{ display:flex; border-bottom:1px solid var(--border); }
+.sidebar-tabs button{ flex:1; padding:10px; border-radius:0; font-size:12px; background:transparent; color:var(--text2); }
+.sidebar-tabs button.active{ color:var(--accent); border-bottom:2px solid var(--accent); }
+.sidebar-content{ flex:1; overflow-y:auto; padding:8px; }
+.meme-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:6px; }
+.meme-thumb{ aspect-ratio:1; border-radius:6px; overflow:hidden; cursor:pointer; border:2px solid transparent; transition:all 0.2s; }
+.meme-thumb:hover{ border-color:var(--primary); transform:scale(1.05); }
+.meme-thumb.selected{ border-color:var(--accent); }
+.meme-thumb img{ width:100%; height:100%; object-fit:cover; }
+.meme-thumb .label{ position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.7); padding:2px 4px; font-size:10px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.users-panel{ border-top:1px solid var(--border); }
+.users-panel .title{ padding:8px 12px; font-size:12px; color:var(--text2); display:flex; justify-content:space-between; }
+.user-item{ display:flex; align-items:center; gap:8px; padding:6px 12px; font-size:13px; }
+.user-item .avatar{ width:24px; height:24px; border-radius:50%; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:12px; }
+.user-item .spec-badge{ font-size:10px; background:var(--surface2); padding:2px 6px; border-radius:4px; color:var(--text2); }
+.send-bar{ padding:8px 12px; background:var(--surface); border-top:1px solid var(--border); display:flex; gap:8px; align-items:center; }
+.send-bar .send-btn{ padding:10px 20px; }
+.send-bar .selected-preview{ width:40px; height:40px; border-radius:6px; overflow:hidden; border:1px solid var(--border); flex-shrink:0; }
+.send-bar .selected-preview img{ width:100%; height:100%; object-fit:cover; }
+.send-bar .hint{ font-size:12px; color:var(--text2); flex:1; }
+#cameraModal{ position:fixed; inset:0; background:rgba(0,0,0,0.85); display:none; align-items:center; justify-content:center; z-index:100; }
+#cameraModal.show{ display:flex; }
+.cam-box{ background:var(--surface); border-radius:12px; padding:16px; width:360px; }
+.cam-box video{ width:100%; border-radius:8px; background:#000; }
+.cam-box canvas{ display:none; }
+.cam-btn-row{ display:flex; gap:8px; margin-top:8px; }
+.cam-btn-row button{ flex:1; }
+@media(max-width:768px){
+  .room-sidebar{ width:200px; }
+  .meme-grid{ grid-template-columns:repeat(2,1fr); }
+  .room-grid{ grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div v-if="view==='login'" class="login-overlay">
+    <div class="login-box">
+      <h2>Meme Battle Room</h2>
+      <div class="field"><label>Username</label><input v-model="loginForm.username" type="text" placeholder="Enter username" @keyup.enter="doLogin"></div>
+      <div class="field"><label>Password</label><input v-model="loginForm.password" type="password" placeholder="Enter password" @keyup.enter="doLogin"></div>
+      <div class="field"><label>Nickname (for register)</label><input v-model="loginForm.nickname" type="text" placeholder="Display name"></div>
+      <div class="btn-row">
+        <button class="btn-primary" @click="doLogin">Login</button>
+        <button class="btn-accent" @click="doRegister">Register</button>
+      </div>
+      <div v-if="loginError" class="error">{{ loginError }}</div>
+    </div>
+  </div>
+  <div v-if="view==='lobby'" class="lobby">
+    <div class="lobby-header">
+      <h1>Meme Battle Room</h1>
+      <div class="lobby-actions">
+        <button class="btn-accent" @click="showCreateRoom = true">+ Create Room</button>
+        <button class="btn-primary" @click="randomEnter">Random Enter</button>
+        <button class="btn-surface" @click="logout">Logout</button>
+      </div>
+    </div>
+    <div class="lobby-search">
+      <input v-model="searchQuery" type="search" placeholder="Search rooms..." @input="searchRooms">
+      <button class="btn-surface" @click="loadRooms">Refresh</button>
+    </div>
+    <div v-if="showCreateRoom" class="login-overlay" @click.self="showCreateRoom=false">
+      <div class="login-box">
+        <h2>Create Room</h2>
+        <div class="field"><label>Room Name</label><input v-model="createForm.name" type="text" placeholder="e.g. Funny cat memes" @keyup.enter="doCreateRoom"></div>
+        <div class="btn-row">
+          <button class="btn-primary" @click="doCreateRoom">Create</button>
+          <button class="btn-surface" @click="showCreateRoom=false">Cancel</button>
+        </div>
+        <div v-if="createError" class="error">{{ createError }}</div>
+      </div>
+    </div>
+    <div v-if="rooms.length" class="room-grid">
+      <div v-for="r in rooms" :key="r.id" class="room-card">
+        <h3>{{ r.name }}</h3>
+        <div class="meta">
+          <span>{{ r.user_count }}/{{ r.max_users }} online</span>
+          <span>by {{ r.creator_name || r.creator_id }}</span>
+        </div>
+        <button class="btn-primary enter-btn" @click="enterRoom(r.id)" :disabled="r.user_count >= r.max_users">
+          {{ r.user_count >= r.max_users ? "Full" : "Enter" }}
+        </button>
+      </div>
+    </div>
+    <div v-else class="empty-state">
+      <h2>No active rooms</h2>
+      <p>Create one or try "Random Enter"</p>
+    </div>
+  </div>
+  <div v-if="view==='room'" class="room-view">
+    <div class="room-topbar">
+      <div class="left">
+        <button class="btn-surface" @click="leaveRoom">&larr; Back</button>
+        <h2>{{ currentRoom.name }}</h2>
+        <div class="status"><span v-if="isSpectator" style="color:var(--accent);font-size:12px;">[Spectator]</span></div>
+      </div>
+      <div class="status"><span class="dot" :class="wsConnected?'active':''"></span>{{ userList.length }} users</div>
+    </div>
+    <div class="room-body">
+      <div class="danmaku-stage" id="danmakuStage">
+        <div v-for="dm in danmakuItems" :key="dm.id" class="danmaku-item"
+             :style="{ top: dm.top + '%', animation: 'danmakuScroll ' + dm.duration + 's linear' }">
+          <img :src="dm.meme_url" :alt="dm.meme_id">
+          <span class="user-name">{{ dm.nickname || dm.username }}</span>
+        </div>
+        <div v-if="!danmakuItems.length" class="danmaku-empty">Waiting for memes...</div>
+      </div>
+      <div class="room-sidebar">
+        <div class="sidebar-tabs">
+          <button :class="{active: activeTab==='personal'}" @click="activeTab='personal'">表情包</button>
+          <button :class="{active: activeTab==='search'}" @click="activeTab='search'">搜索</button>
+          <button :class="{active: activeTab==='camera'}" @click="openCamera">Camera</button>
+        </div>
+        <div class="sidebar-content">
+          <div v-if="activeTab==='personal'">
+            <div v-if="personalMemes.length" class="meme-grid">
+              <div v-for="m in personalMemes" :key="m.id" class="meme-thumb"
+                   :class="{selected: selectedMeme && selectedMeme.id===m.id}"
+                   @click="selectMeme(m)">
+                <img :src="m.thumbnail_url || m.file_url" :alt="m.description">
+              </div>
+            </div>
+            <div v-else class="empty-state" style="height:200px;"><p>暂无表情包</p></div>
+          </div>
+          <div v-if="activeTab==='search'">
+            <input v-model="searchQuery2" type="search" placeholder="按名称搜索..." @input="searchMemes" style="margin-bottom:8px;">
+            <div v-if="searchResults.length" class="meme-grid">
+              <div v-for="m in searchResults" :key="m.id" class="meme-thumb"
+                   :class="{selected: selectedMeme && selectedMeme.id===m.id}"
+                   @click="selectMeme(m)">
+                <img :src="m.thumbnail_url || m.file_url" :alt="m.description">
+              </div>
+            </div>
+            <div v-else class="empty-state" style="height:200px;"><p>输入关键词搜索表情包</p></div>
+          </div>
+          <div v-if="activeTab==='camera'">
+            <div class="empty-state" style="height:200px;">
+              <p>Take a photo to share</p>
+              <button class="btn-surface" @click="openCamera">Open Camera</button>
+            </div>
+          </div>
+        </div>
+        <div class="users-panel">
+          <div class="title"><span>Online</span><span>{{ userList.length }}</span></div>
+          <div v-for="u in userList" :key="u.id" class="user-item">
+            <div class="avatar">{{ (u.nickname || u.username)[0] }}</div>
+            <span>{{ u.nickname || u.username }}</span>
+            <span v-if="u.is_spectator" class="spec-badge">watching</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="send-bar">
+      <div class="selected-preview" v-if="selectedMeme">
+        <img :src="selectedMeme.thumbnail_url || selectedMeme.file_url">
+      </div>
+      <span class="hint" v-if="!selectedMeme">Select a meme to send</span>
+      <span class="hint" v-else>Click send or press Enter</span>
+      <button class="btn-primary send-btn" @click="sendMeme" :disabled="!selectedMeme || isSpectator">{{ isSpectator ? "Spectating" : "Send!" }}</button>
+    </div>
+  </div>
+  <div id="cameraModal" :class="showCameraModal?'show':''" @click.self="closeCamera">
+    <div class="cam-box">
+      <video id="camVideo" autoplay playsinline></video>
+      <canvas id="camCanvas"></canvas>
+      <div class="cam-btn-row">
+        <button class="btn-primary" @click="capturePhoto">Capture</button>
+        <button class="btn-surface" @click="closeCamera">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
+<script type="module">
+import { createApp } from "https://unpkg.com/vue@3/dist/vue.esm-browser.js";
+
+const API_BASE = location.origin;
+const WS_BASE = API_BASE.replace("http","ws");
+
+let token = localStorage.getItem("meme_token") || "";
+let ws = null;
+let danmakuIdCounter = 0;
+let cameraStream = null;
+
+const App = {
+  data() {
+    return {
+      view: token ? "lobby" : "login",
+      loginForm: { username: "", password: "", nickname: "" },
+      loginError: "",
+      rooms: [],
+      searchQuery: "",
+      showCreateRoom: false,
+      createForm: { name: "" },
+      createError: "",
+      currentRoom: {},
+      danmakuItems: [],
+      personalMemes: [],
+      searchResults: [],
+      searchQuery2: "",
+      selectedMeme: null,
+      userList: [],
+      activeTab: "personal",
+      isSpectator: false,
+      wsConnected: false,
+      showCameraModal: false,
+      cameraCaptured: null,
+      userInfo: JSON.parse(localStorage.getItem("meme_user") || "{}"),
+    }
+  },
+  mounted() {
+    if (token) this.loadRooms();
+  },
+  methods: {
+    async doLogin() {
+      try {
+        const res = await fetch(API_BASE + "/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: this.loginForm.username, password: this.loginForm.password })
+        })
+        const data = await res.json();
+        if (data.code !== 0) { this.loginError = data.msg; return; }
+        token = data.data.token;
+        localStorage.setItem("meme_token", token);
+        localStorage.setItem("meme_user", JSON.stringify(data.data.user));
+        this.userInfo = data.data.user;
+        this.loginError = "";
+        this.view = "lobby";
+        this.loadRooms();
+      } catch(e) { this.loginError = "Network error"; }
+    },
+    async doRegister() {
+      try {
+        const res = await fetch(API_BASE + "/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: this.loginForm.username, nickname: this.loginForm.nickname || this.loginForm.username, password: this.loginForm.password })
+        })
+        const data = await res.json();
+        if (data.code !== 0) { this.loginError = data.msg; return; }
+        token = data.data.token;
+        localStorage.setItem("meme_token", token);
+        localStorage.setItem("meme_user", JSON.stringify(data.data.user));
+        this.userInfo = data.data.user;
+        this.loginError = "";
+        this.view = "lobby";
+        this.loadRooms();
+      } catch(e) { this.loginError = "Network error"; }
+    },
+    logout() {
+      token = "";
+      localStorage.removeItem("meme_token");
+      localStorage.removeItem("meme_user");
+      this.view = "login";
+    },
+    async loadRooms() {
+      try {
+        const res = await fetch(API_BASE + "/api/danmaku/rooms", { headers: { Authorization: "Bearer " + token } });
+        const data = await res.json();
+        if (data.code === 0) this.rooms = data.data.rooms || [];
+      } catch(e) { console.error(e); }
+    },
+    searchRooms() {
+      if (!this.searchQuery) { this.loadRooms(); return; }
+      fetch(API_BASE + "/api/danmaku/rooms?keyword=" + encodeURIComponent(this.searchQuery), { headers: { Authorization: "Bearer " + token } })
+        .then(r=>r.json()).then(d=>{ if(d.code===0) this.rooms = d.data.rooms || []; })
+        .catch(console.error);
+    },
+    async doCreateRoom() {
+      if (!this.createForm.name.trim()) { this.createError = "Room name required"; return; }
+      try {
+        const res = await fetch(API_BASE + "/api/danmaku/rooms", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+          body: JSON.stringify({ name: this.createForm.name })
+        })
+        const data = await res.json();
+        if (data.code !== 0) { this.createError = data.msg; return; }
+        this.showCreateRoom = false;
+        this.createForm.name = "";
+        this.createError = "";
+        this.loadRooms();
+        this.enterRoom(data.data.id);
+      } catch(e) { this.createError = "Network error"; }
+    },
+    async randomEnter() {
+      try {
+        const res = await fetch(API_BASE + "/api/danmaku/rooms/random", { method: "POST", headers: { Authorization: "Bearer " + token } });
+        const data = await res.json();
+        if (data.code !== 0) return;
+        this.enterRoom(data.data.id);
+      } catch(e) { console.error(e); }
+    },
+    async enterRoom(roomId) {
+      this.currentRoom = { id: roomId };
+      this.danmakuItems = [];
+      this.selectedMeme = null;
+      this.view = "room";
+      this.loadPersonalMemes();
+
+      if (ws) ws.close();
+      const url = WS_BASE.replace(":9000","") + "/api/danmaku/ws/" + roomId + "?token=" + token;
+      const wsUrl = url.replace(/^http/, "ws");
+      try {
+        ws = new WebSocket(wsUrl);
+      } catch(e) { console.error("WS error", e); return; }
+
+      ws.onopen = () => { this.wsConnected = true; };
+      ws.onclose = () => { this.wsConnected = false; };
+      ws.onmessage = (evt) => {
+        try {
+          const msg = JSON.parse(evt.data);
+          this.handleWSMessage(msg);
+        } catch(e) {}
+      };
+    },
+    handleWSMessage(msg) {
+      if (msg.type === "room_info") {
+        this.currentRoom = msg.data.room;
+        this.isSpectator = msg.data.is_spectator;
+      } else if (msg.type === "meme") {
+        const d = msg.data;
+        const item = {
+          id: ++danmakuIdCounter,
+          username: d.user.username,
+          nickname: d.user.nickname,
+          meme_url: d.meme_url,
+          meme_id: d.meme_id,
+          top: Math.random() * 60 + 5,
+          duration: Math.random() * 3 + 5,
+        }
+        this.danmakuItems.push(item);
+        setTimeout(() => {
+          const idx = this.danmakuItems.findIndex(x => x.id === item.id);
+          if (idx >= 0) this.danmakuItems.splice(idx, 1);
+        }, (item.duration + 1) * 1000);
+      } else if (msg.type === "system") {
+        console.log("System:", msg.data.message);
+      } else if (msg.type === "user_list") {
+        this.userList = msg.data.users;
+      } else if (msg.type === "history") {
+        this.danmakuItems = [];
+        for (const m of msg.data.messages) {
+          const item = {
+            id: ++danmakuIdCounter,
+            username: m.user.username,
+            nickname: m.user.nickname,
+            meme_url: m.meme_url,
+            meme_id: m.meme_id,
+            top: Math.random() * 60 + 5,
+            duration: Math.random() * 3 + 5,
+          }
+          this.danmakuItems.push(item);
+        }
+      } else if (msg.type === "error") {
+        alert(msg.data.message);
+      }
+    },
+    async sendMeme() {
+      if (!this.selectedMeme || this.isSpectator) return;
+      if (!ws || ws.readyState !== WebSocket.OPEN) { alert("Not connected"); return; }
+      ws.send(JSON.stringify({
+        type: "send_meme",
+        meme_id: this.selectedMeme.id,
+        meme_url: this.selectedMeme.file_url || this.selectedMeme.thumbnail_url,
+      }))
+      this.selectedMeme = null;
+    },
+    leaveRoom() {
+      if (ws) { ws.close(); ws = null; }
+      this.wsConnected = false;
+      this.danmakuItems = [];
+      this.userList = [];
+      this.isSpectator = false;
+      this.view = "lobby";
+      this.loadRooms();
+    },
+    selectMeme(meme) {
+      if (this.selectedMeme && this.selectedMeme.id === meme.id) {
+        this.selectedMeme = null;
+      } else {
+        this.selectedMeme = meme;
+      }
+    },
+    async loadPersonalMemes() {
+      try {
+        const res = await fetch(API_BASE + "/api/danmaku/memes/local", { headers: { Authorization: "Bearer " + token } });
+        const data = await res.json();
+        if (data.code === 0) this.personalMemes = data.data || [];
+      } catch(e) { console.error(e); }
+    },
+    searchMemes: debounce(function() {
+      if (!this.searchQuery2) { this.searchResults = []; return; }
+      const q = this.searchQuery2.toLowerCase();
+      this.searchResults = this.personalMemes.filter(m => m.description.toLowerCase().includes(q));
+    }, 300),
+    async openCamera() {
+      this.showCameraModal = true;
+      const video = document.getElementById("camVideo");
+      try {
+        cameraStream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240, facingMode: "user" } });
+        video.srcObject = cameraStream;
+      } catch(e) {
+        alert("Camera access denied");
+        this.showCameraModal = false;
+      }
+    },
+    async capturePhoto() {
+      const video = document.getElementById("camVideo");
+      const canvas = document.getElementById("camCanvas");
+      canvas.width = video.videoWidth || 320;
+      canvas.height = video.videoHeight || 240;
+      canvas.getContext("2d").drawImage(video, 0, 0);
+      canvas.toBlob(async (blob) => {
+        const form = new FormData();
+        form.append("file", blob, "capture.png");
+        form.append("description", "Camera capture");
+        try {
+          const res = await fetch(API_BASE + "/api/danmaku/emojis/upload", {
+            method: "POST",
+            headers: { Authorization: "Bearer " + token },
+            body: form
+          })
+          const data = await res.json();
+          if (data.code === 0) {
+            this.closeCamera();
+            this.selectedMeme = data.data;
+            this.activeTab = "personal";
+            this.loadPersonalMemes();
+          }
+        } catch(e) { console.error(e); }
+      }, "image/png");
+    },
+    closeCamera() {
+      if (cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
+      this.showCameraModal = false;
+    },
+  }
+}
+
+const styleSheet = document.createElement("style");
+styleSheet.textContent = `
+@keyframes danmakuScroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-200vw); }
+}
+`;
+document.head.appendChild(styleSheet);
+
+createApp(App).mount("#app");
+
+
+function debounce(fn, delay) {
+  let timer = null;
+  return function(...args) {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => { fn.apply(this, args); timer = null; }, delay);
+  };
+}
+
+
+</script>

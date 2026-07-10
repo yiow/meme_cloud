@@ -42,16 +42,6 @@ meme_cloud/
 │       ├── services/          # 业务逻辑（KNN 匹配 / MediaPipe / 弹幕 / 游戏）
 │       └── api/routes/        # RESTful 路由（auth / match / danmaku / game / community / social）
 │
-├── danmaku/                   # 弹幕对战房间（Vue.js 单页应用）
-│   └── index.html
-│
-├── meme_match/                # Gesto 98 —— 复古手势表情包网页
-│   ├── index.html             # Win98 风格交互主页面
-│   ├── serve.py               # 本地开发服务器
-│   ├── meme-labels.json       # 手势/表情标签数据集
-│   ├── gestures.json          # 手势映射配置
-│   ├── memes/                 # 表情包图片资源
-│   └── icons/                 # Gesto 98 桌面图标
 │
 ├── docs/                      # 项目文档
 │   ├── 表情云库_PRD_完整版.md
@@ -88,15 +78,6 @@ meme_cloud/
 - **表情包发送** — 从个人库或搜索中选择表情包，一键发送
 - **随机进入** — 一键随机加入有位置的房间
 - **旁观模式** — 满员时仍可观看
-
-### Gesto 98（Win98 复古交互）
-
-- **纯前端隐私安全** — 所有摄像头数据在本地处理，不上传服务器
-- **手势训练与识别** — 上传表情包 → 命名 → 录制手势 → 实时触发
-- **面部表情训练与识别** — 支持自定义表情模型
-- **可拖拽窗口** — 经典 Windows 98 桌面风格，支持自由拖拽、缩放
-- **Clippy 助手** — 复古回形针助手，随机弹出提示和问候
-- **中英文切换** — 一键切换界面语言
 
 ### 社区与社交
 
@@ -141,7 +122,6 @@ meme_cloud/
 |------|------|
 | **Vue.js** | 响应式 UI 框架 |
 | **MediaPipe Tasks-Vision** | 浏览器端姿态/手势/面部 AI 模型 |
-| **98.css** | Windows 98 复古 UI 框架 |
 
 ---
 
@@ -163,17 +143,7 @@ pip install -r requirements.txt
 uvicorn app.main:app --host 0.0.0.0 --port 9000 --reload
 ```
 
-### Gesto 98（本地运行）
-
-```bash
-cd meme_match
-python serve.py
-# 打开 http://127.0.0.1:5173/index.html
 ```
-
-### Danmaku Room（通过后端提供）
-
-启动后端后直接访问 `http://localhost:9000/danmaku/index.html`
 
 ### Android 客户端
 

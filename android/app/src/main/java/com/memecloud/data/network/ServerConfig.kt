@@ -8,8 +8,8 @@ package com.memecloud.data.network
  */
 object ServerConfig {
     // ⚠️ 真机调试时改这里
-    //const val HOST = "10.0.2.2"
-    const val HOST = "192.168.31.235"
+    //const val HOST = "192.168.31.235"
+    const val HOST = "10.0.2.2"
     const val PORT = 9000
 
     val BASE_URL get() = "http://$HOST:$PORT"

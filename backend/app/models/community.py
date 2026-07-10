@@ -51,3 +51,14 @@ class Like(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     __table_args__ = (UniqueConstraint("post_id", "user_id", name="uq_like_post_user"),)
+
+
+class PostCollect(Base):
+    __tablename__ = "post_collects"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    post_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("community_posts.id"), nullable=False)
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    __table_args__ = (UniqueConstraint("post_id", "user_id", name="uq_collect_post_user"),)

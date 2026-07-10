@@ -73,6 +73,27 @@ def toggle_like(
     return ApiResponse(data={"is_liked": liked})
 
 
+@router.post("/posts/{post_id}/collect", response_model=ApiResponse)
+def toggle_collect(
+    post_id: int,
+    user_id: int = Depends(require_user),
+    db: Session = Depends(get_db),
+):
+    collected = svc.toggle_collect(db, post_id, user_id)
+    return ApiResponse(data={"is_collected": collected})
+
+
+@router.get("/collections", response_model=ApiResponse)
+def get_collections(
+    page: int = 1,
+    size: int = 20,
+    user_id: int = Depends(require_user),
+    db: Session = Depends(get_db),
+):
+    result = svc.get_collected_posts(db, user_id, page=page, size=size)
+    return ApiResponse(data=result.model_dump())
+
+
 @router.post("/posts/{post_id}/comments", response_model=ApiResponse)
 def add_comment(
     post_id: int,

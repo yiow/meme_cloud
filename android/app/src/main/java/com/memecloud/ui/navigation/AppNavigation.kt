@@ -18,6 +18,8 @@ import com.memecloud.ui.battle.BattleScreen
 import com.memecloud.ui.battle.ImitationContestScreen
 import com.memecloud.ui.community.*
 import com.memecloud.ui.home.HomeScreen
+import com.memecloud.ui.profile.CollectionsScreen
+import com.memecloud.ui.profile.EmojiLibraryScreen
 import com.memecloud.ui.profile.FollowScreen
 import com.memecloud.ui.profile.ProfileScreen
 
@@ -33,7 +35,7 @@ fun AppNavigation(
     val hideBottomBar = currentRoute in listOf(
         Routes.LOGIN, Routes.REGISTER, Routes.MEME_DETAIL,
         Routes.RANKING, Routes.TOPIC_CHALLENGE, Routes.BOUNTY, Routes.PUBLISH,
-        Routes.BATTLE_ROOM, Routes.IMITATION_CONTEST, Routes.FOLLOW
+        Routes.BATTLE_ROOM, Routes.IMITATION_CONTEST, Routes.FOLLOW, Routes.COLLECTIONS, Routes.EMOJI_LIBRARY
     )
 
     Scaffold(
@@ -122,7 +124,9 @@ fun AppNavigation(
                             popUpTo(0) { inclusive = true }
                         }
                     },
-                    onGoFollow = { navController.navigate(Routes.FOLLOW) }
+                    onGoFollow = { navController.navigate(Routes.FOLLOW) },
+                    onGoCollections = { navController.navigate(Routes.COLLECTIONS) },
+                    onGoEmojiLibrary = { navController.navigate(Routes.EMOJI_LIBRARY) }
                 )
             }
 
@@ -188,6 +192,12 @@ fun AppNavigation(
             // ── 个人中心子页面 ──
             composable(Routes.FOLLOW) {
                 FollowScreen(onBack = { navController.popBackStack() })
+            }
+            composable(Routes.EMOJI_LIBRARY) {
+                EmojiLibraryScreen(onBack = { navController.popBackStack() })
+            }
+            composable(Routes.COLLECTIONS) {
+                CollectionsScreen(onBack = { navController.popBackStack() })
             }
         }
     }

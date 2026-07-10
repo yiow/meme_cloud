@@ -59,6 +59,9 @@ fun CommunityScreen(
         else -> "follow"
     }
 
+    // 全局关注用户 ID 集合，跨卡片同步关注状态
+    var followedUserIds by remember { mutableStateOf(setOf<Long>()) }
+
     fun loadFeed(refresh: Boolean = false) {
         scope.launch {
             if (refresh) {
@@ -75,6 +78,8 @@ fun CommunityScreen(
                     posts = if (refresh) data.items else posts + data.items
                     hasMore = data.hasMore
                     page = data.page + 1
+                    // 同步全局关注状态
+                    followedUserIds = (data.items).filter { it.isFollowed }.map { it.author.id }.toSet()
                 }
             } catch (e: HttpException) {
                 Toast.makeText(context, "加载失败: ${e.code()}", Toast.LENGTH_SHORT).show()
@@ -150,11 +155,34 @@ fun CommunityScreen(
                                 } catch (_: Exception) { }
                             }
                         },
+                        onToggleCollect = {
+                            scope.launch {
+                                try {
+                                    val result = api.toggleCollect(post.id)
+                                    if (result.isSuccess) {
+                                        val collected = result.data?.get("is_collected") as? Boolean ?: false
+                                        posts = posts.map { p ->
+                                            if (p.id == post.id) p.copy(isCollected = collected) else p
+                                        }
+                                    }
+                                } catch (_: Exception) { }
+                            }
+                        },
                         onToggleFollow = {
                             scope.launch {
-                                try { api.toggleFollow(post.author.id) } catch (_: Exception) { }
+                                try {
+                                    val result = api.toggleFollow(post.author.id)
+                                    if (result.isSuccess) {
+                                        followedUserIds = if (post.author.id in followedUserIds) {
+                                            followedUserIds - post.author.id
+                                        } else {
+                                            followedUserIds + post.author.id
+                                        }
+                                    }
+                                } catch (_: Exception) { }
                             }
-                        }
+                        },
+                        isFollowed = post.author.id in followedUserIds
                     )
                 }
                 // 加载更多指示器
@@ -227,7 +255,9 @@ private fun MemeCard(
     onClick: () -> Unit,
     onDelete: () -> Unit,
     onToggleLike: () -> Unit,
-    onToggleFollow: () -> Unit
+    onToggleFollow: () -> Unit,
+    onToggleCollect: () -> Unit = {},
+    isFollowed: Boolean = false
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
@@ -263,19 +293,28 @@ private fun MemeCard(
                         maxLines = 1, overflow = TextOverflow.Ellipsis
                     )
                     // 关注按钮
-                    var showFollow by remember { mutableStateOf(true) }
                     var followLoading by remember { mutableStateOf(false) }
-                    if (showFollow) {
+                    if (!isFollowed) {
                         TextButton(
                             onClick = {
                                 followLoading = true
                                 onToggleFollow()
-                                showFollow = false
                             },
                             contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
                             modifier = Modifier.height(24.dp)
                         ) {
                             Text("+ 关注", fontSize = 10.sp, color = MaterialTheme.colorScheme.primary)
+                        }
+                    } else {
+                        TextButton(
+                            onClick = {
+                                followLoading = true
+                                onToggleFollow()
+                            },
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
+                            modifier = Modifier.height(24.dp)
+                        ) {
+                            Text("已关注", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                     if (!post.caption.isNullOrBlank()) {
@@ -305,6 +344,15 @@ private fun MemeCard(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(Modifier.width(4.dp))
                         Text("${post.commentCount}", fontSize = 11.sp)
+                        Spacer(Modifier.width(8.dp))
+                        IconButton(onClick = onToggleCollect, modifier = Modifier.size(20.dp)) {
+                            Icon(
+                                if (post.isCollected) Icons.Filled.Bookmark else Icons.Filled.BookmarkBorder,
+                                null, Modifier.size(16.dp),
+                                tint = if (post.isCollected) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
 
                         Spacer(Modifier.weight(1f))
 

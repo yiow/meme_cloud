@@ -70,4 +70,6 @@ object Routes {
     fun battleRoom(roomId: String, roomName: String): String =
         "battle_room/${java.net.URLEncoder.encode(roomId, "UTF-8")}/${java.net.URLEncoder.encode(roomName, "UTF-8")}"
     const val FOLLOW = "follow"
+    const val COLLECTIONS = "collections"
+    const val EMOJI_LIBRARY = "emoji_library"
 }

@@ -50,6 +50,12 @@ interface MemeApi {
     @POST("api/community/posts/{postId}/like")
     suspend fun toggleCommunityLike(@Path("postId") postId: Long): ApiResponse<Map<String, Any>>
 
+    @POST("api/community/posts/{postId}/collect")
+    suspend fun toggleCollect(@Path("postId") postId: Long): ApiResponse<Map<String, Any>>
+
+    @GET("api/community/collections")
+    suspend fun getCollections(@Query("page") page: Int = 1, @Query("size") size: Int = 20): ApiResponse<PaginatedPosts>
+
     @POST("api/community/posts/{postId}/comments")
     suspend fun addComment(
         @Path("postId") postId: Long,
@@ -108,4 +114,8 @@ interface MemeApi {
 
     @POST("api/topics/submissions/{submissionId}/vote")
     suspend fun voteSubmission(@Path("submissionId") submissionId: Long): ApiResponse<Map<String, Any>>
+    
+    // 表情库
+    @GET("api/danmaku/emojis/all")
+    suspend fun getAllEmojis(): ApiResponse<List<EmojiItem>>
 }

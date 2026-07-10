@@ -4,7 +4,7 @@ import logging
 import os as _os
 from pathlib import Path
 from urllib.parse import quote
-from fastapi import APIRouter, Depends, Header, Query, UploadFile, File, Form, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Body, Depends, Header, Query, UploadFile, File, Form, WebSocket, WebSocketDisconnect
 from sqlalchemy import select, or_
 from sqlalchemy.orm import Session
 from app.core.database import get_db
@@ -170,11 +170,61 @@ def list_local_memes():
                     "file_url": f"/static/memes/{encoded_name}",
                     "thumbnail_url": f"/static/memes/{encoded_name}",
                     "description": f.stem,
+                    "filename": f.name,
                 })
     return ApiResponse(msg="ok", data=memes)
 
 
 
+
+
+@router.delete("/memes/local/{filename:path}", response_model=ApiResponse)
+def delete_local_meme(filename: str, authorization: str = Header(""), db: Session = Depends(get_db)):
+    import urllib.parse as _up
+    token = _get_token_from_header(authorization)
+    user_id = _get_current_user_id(token)
+    if not user_id:
+        return ApiResponse(code=401, msg="login required")
+    decoded = _up.unquote(filename)
+    file_path = (MEME_IMG_DIR / decoded).resolve()
+    safe_dir = str(MEME_IMG_DIR.resolve())
+    if not str(file_path).startswith(safe_dir):
+        return ApiResponse(code=400, msg="invalid path")
+    if not file_path.exists():
+        return ApiResponse(code=404, msg="file not found")
+    file_path.unlink()
+    return ApiResponse(msg="deleted")
+
+
+@router.put("/memes/local/{filename:path}", response_model=ApiResponse)
+def rename_local_meme(filename: str, new_name: str = Body(..., embed=True), authorization: str = Header(""), db: Session = Depends(get_db)):
+    import urllib.parse as _up
+    token = _get_token_from_header(authorization)
+    user_id = _get_current_user_id(token)
+    if not user_id:
+        return ApiResponse(code=401, msg="login required")
+    new_name = new_name.strip()
+    if not new_name or "/" in new_name or "\\" in new_name:
+        return ApiResponse(code=400, msg="invalid name")
+    decoded = _up.unquote(filename)
+    old_path = (MEME_IMG_DIR / decoded).resolve()
+    safe_dir = str(MEME_IMG_DIR.resolve())
+    if not str(old_path).startswith(safe_dir):
+        return ApiResponse(code=400, msg="invalid path")
+    if not old_path.exists():
+        return ApiResponse(code=404, msg="file not found")
+    ext = old_path.suffix
+    new_filename = new_name + ext
+    new_path = MEME_IMG_DIR / new_filename
+    if new_path.exists():
+        return ApiResponse(code=400, msg="file already exists")
+    old_path.rename(new_path)
+    encoded = _up.quote(new_filename)
+    return ApiResponse(msg="renamed", data={
+        "id": decoded, "file_url": f"/static/memes/{encoded}",
+        "thumbnail_url": f"/static/memes/{encoded}",
+        "description": new_name, "filename": new_filename,
+    })
 @router.websocket("/ws/{room_id}")
 async def websocket_endpoint(websocket: WebSocket, room_id: int, token: str = ''):
     payload = decode_access_token(token)

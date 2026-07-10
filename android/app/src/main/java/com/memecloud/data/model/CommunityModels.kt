@@ -15,6 +15,8 @@ data class PostBrief(
     @SerializedName("like_count") val likeCount: Int = 0,
     @SerializedName("comment_count") val commentCount: Int = 0,
     @SerializedName("is_liked") val isLiked: Boolean = false,
+    @SerializedName("is_followed") val isFollowed: Boolean = false,
+    @SerializedName("is_collected") val isCollected: Boolean = false,
     @SerializedName("created_at") val createdAt: String = ""
 )
 
@@ -31,6 +33,8 @@ data class PostDetail(
     @SerializedName("like_count") val likeCount: Int = 0,
     @SerializedName("comment_count") val commentCount: Int = 0,
     @SerializedName("is_liked") val isLiked: Boolean = false,
+    @SerializedName("is_followed") val isFollowed: Boolean = false,
+    @SerializedName("is_collected") val isCollected: Boolean = false,
     @SerializedName("created_at") val createdAt: String = "",
     val comments: List<CommentBrief> = emptyList()
 )

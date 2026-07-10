@@ -30,7 +30,9 @@ import kotlinx.coroutines.launch
 @Composable
 fun ProfileScreen(
     onLogout: () -> Unit,
-    onGoFollow: () -> Unit = {}
+    onGoFollow: () -> Unit = {},
+    onGoCollections: () -> Unit = {},
+    onGoEmojiLibrary: () -> Unit = {}
 ) {
     var showLogoutDialog by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(true) }
@@ -143,9 +145,9 @@ fun ProfileScreen(
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Column {
-                        ProfileMenuItem(Icons.Filled.CollectionsBookmark, "我的表情库", "管理上传的表情包") { }
+                        ProfileMenuItem(Icons.Filled.CollectionsBookmark, "我的表情库", "管理上传的表情包", onClick = onGoEmojiLibrary)
                         Divider(modifier = Modifier.padding(horizontal = 16.dp))
-                        ProfileMenuItem(Icons.Filled.FavoriteBorder, "我的收藏", "已收藏的表情包") { }
+                        ProfileMenuItem(Icons.Filled.BookmarkBorder, "我的收藏", "已收藏的帖子", onClick = onGoCollections)
                         Divider(modifier = Modifier.padding(horizontal = 16.dp))
                         ProfileMenuItem(Icons.Filled.History, "检索历史", "最近 30 天的搜索记录") { }
                         Divider(modifier = Modifier.padding(horizontal = 16.dp))

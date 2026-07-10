@@ -1,6 +1,7 @@
 package com.memecloud.ui.community
 
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
@@ -97,36 +98,55 @@ fun CommunityScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
             TopAppBar(
-                title = { Text("社区广场", fontWeight = FontWeight.Bold) },
+                title = { Text("社区广场", fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp) },
                 actions = {
-                    IconButton(onClick = onGoChallenge) { Icon(Icons.Filled.EmojiEvents, "话题挑战") }
-                    IconButton(onClick = onGoRanking) { Icon(Icons.Filled.Whatshot, "排行榜") }
-                    IconButton(onClick = onGoBounty) { Icon(Icons.Filled.Redeem, "悬赏") }
+                    IconButton(onClick = onGoChallenge) { Icon(Icons.Filled.EmojiEvents, "话题挑战", tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    IconButton(onClick = onGoRanking) { Icon(Icons.Filled.Whatshot, "排行榜", tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    IconButton(onClick = onGoBounty) { Icon(Icons.Filled.Redeem, "悬赏", tint = MaterialTheme.colorScheme.onSurfaceVariant) }
                 },
+                windowInsets = WindowInsets(0),
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
                 )
             )
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
                 horizontalArrangement = Arrangement.spacedBy(24.dp)
             ) {
                 SORT_TABS.forEachIndexed { index, label ->
-                    Text(
-                        label,
+                    Column(
                         modifier = Modifier.clickable { selectedSort = index },
-                        fontWeight = if (selectedSort == index) FontWeight.Bold else FontWeight.Normal,
-                        color = if (selectedSort == index) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = if (selectedSort == index) 16.sp else 14.sp
-                    )
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            label,
+                            fontWeight = if (selectedSort == index) FontWeight.Bold else FontWeight.Normal,
+                            color = if (selectedSort == index) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = if (selectedSort == index) 15.sp else 14.sp
+                        )
+                        if (selectedSort == index) {
+                            Spacer(Modifier.height(3.dp))
+                            Box(
+                                modifier = Modifier
+                                    .width(20.dp)
+                                    .height(2.dp)
+                                    .background(
+                                        MaterialTheme.colorScheme.primary,
+                                        RoundedCornerShape(1.dp)
+                                    )
+                            )
+                        } else {
+                            Spacer(Modifier.height(5.dp))
+                        }
+                    }
                 }
             }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
 
             LazyVerticalStaggeredGrid(
                 columns = StaggeredGridCells.Fixed(2),
@@ -204,7 +224,7 @@ fun CommunityScreen(
                 .padding(16.dp),
             containerColor = MaterialTheme.colorScheme.primary
         ) {
-            Icon(Icons.Filled.Add, "发布")
+            Icon(Icons.Filled.Add, "发布", tint = MaterialTheme.colorScheme.onPrimary)
         }
     }
 

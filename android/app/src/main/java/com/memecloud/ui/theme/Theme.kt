@@ -11,35 +11,45 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val LightColorScheme = lightColorScheme(
-    primary = Orange500,
-    onPrimary = Color.White,
-    primaryContainer = Orange300,
-    secondary = Purple500,
-    onSecondary = Color.White,
-    secondaryContainer = Purple400,
-    tertiary = Pink500,
-    background = LightBackground,
-    surface = LightSurface,
-    surfaceVariant = LightCard,
-    error = Error,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
+    primary               = CyberCyanDim,
+    onPrimary             = Color.White,
+    primaryContainer      = CyberCyanContainer,
+    onPrimaryContainer    = CyberCyan,
+    secondary             = NeonPurple,
+    onSecondary           = Color.White,
+    secondaryContainer    = Color(0xFF1A0E3D),
+    onSecondaryContainer  = NeonPurpleLight,
+    tertiary              = NeonRose,
+    onTertiary            = Color.White,
+    background            = LightBg,
+    surface               = LightSurface,
+    surfaceVariant        = LightCard,
+    outline               = LightBorder,
+    error                 = SemanticError,
+    onBackground          = Color(0xFF111827),
+    onSurface             = Color(0xFF111827),
+    onSurfaceVariant      = Color(0xFF5A6480),
 )
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Orange400,
-    onPrimary = Color(0xFF1A1A2E),
-    primaryContainer = Orange500,
-    secondary = Purple400,
-    onSecondary = Color.White,
-    secondaryContainer = Purple500,
-    tertiary = Pink500,
-    background = DarkBackground,
-    surface = DarkSurface,
-    surfaceVariant = DarkCard,
-    error = Error,
-    onBackground = Color(0xFFE6E1E5),
-    onSurface = Color(0xFFE6E1E5),
+    primary               = CyberCyan,
+    onPrimary             = Color(0xFF001F27),
+    primaryContainer      = CyberCyanContainer,
+    onPrimaryContainer    = CyberCyan,
+    secondary             = NeonPurpleLight,
+    onSecondary           = Color(0xFF1A0E3D),
+    secondaryContainer    = Color(0xFF1A0E3D),
+    onSecondaryContainer  = NeonPurpleLight,
+    tertiary              = NeonRose,
+    onTertiary            = Color.White,
+    background            = DarkBg,
+    surface               = DarkSurface,
+    surfaceVariant        = DarkCard,
+    outline               = DarkBorder,
+    error                 = SemanticError,
+    onBackground          = Color(0xFFE2E8F0),
+    onSurface             = Color(0xFFE2E8F0),
+    onSurfaceVariant      = Color(0xFF7A8BB0),
 )
 
 @Composable
@@ -53,7 +63,7 @@ fun MemeCloudTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.primary.toArgb()
+            window.statusBarColor = if (darkTheme) DarkBg.toArgb() else LightBg.toArgb()
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
         }
     }

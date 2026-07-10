@@ -1,6 +1,7 @@
 package com.memecloud.ui.battle
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -46,18 +47,18 @@ fun BattleScreen(
     onEnterRoom: (String, String) -> Unit = { _, _ -> },
     onGoContest: () -> Unit = {}
 ) {
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         TopAppBar(
-            title = { Text("弹幕斗图室", fontWeight = FontWeight.Bold) },
+            title = { Text("弹幕斗图室", fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp) },
             actions = {
                 TextButton(onClick = onGoContest) {
-                    Text("🏆 模仿大赛", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
+                    Text("🏆 模仿大赛", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                 }
             },
+            windowInsets = WindowInsets(0),
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                actionIconContentColor = MaterialTheme.colorScheme.onPrimary
+                containerColor = MaterialTheme.colorScheme.surface,
+                titleContentColor = MaterialTheme.colorScheme.onSurface
             )
         )
 
@@ -65,14 +66,20 @@ fun BattleScreen(
         Card(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             shape = RoundedCornerShape(12.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
         ) {
             Text("💬 进入房间后只能用表情包「说话」！弹幕从右到左滚动，纯表情包交流体验~",
-                modifier = Modifier.padding(14.dp), fontSize = 13.sp)
+                modifier = Modifier.padding(14.dp), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
-        Text("房间大厅", modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-            style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+        Text(
+            "房间大厅",
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 0.5.sp
+        )
 
         LazyColumn(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -89,7 +96,7 @@ fun BattleScreen(
             onClick = { /* TODO: 创建房间 */ },
             modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
             containerColor = MaterialTheme.colorScheme.primary
-        ) { Icon(Icons.Filled.Add, "创建房间") }
+        ) { Icon(Icons.Filled.Add, "创建房间", tint = MaterialTheme.colorScheme.onPrimary) }
     }
 }
 
@@ -97,8 +104,10 @@ fun BattleScreen(
 private fun RoomCard(room: BattleRoom, onClick: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(14.dp),

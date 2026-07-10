@@ -18,8 +18,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -129,34 +131,55 @@ fun HomeScreen() {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("表情云库", fontWeight = FontWeight.Bold) },
+                title = {
+                    Text(
+                        "表情云库",
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp
+                    )
+                },
+                windowInsets = WindowInsets(0),
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
                 ),
                 actions = {
                     IconButton(onClick = { }) {
-                        Icon(Icons.Filled.Notifications, "通知", tint = MaterialTheme.colorScheme.onPrimary)
+                        Icon(
+                            Icons.Filled.Notifications,
+                            "通知",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { if (isCameraOn && hasCameraPermission) takePhotoAndMatch() },
-                containerColor = if (isLoading) MaterialTheme.colorScheme.secondary
-                else if (!isCameraOn || !hasCameraPermission) MaterialTheme.colorScheme.surfaceVariant
-                else MaterialTheme.colorScheme.primary
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.dp
+            Box(
+                modifier = Modifier
+                    .shadow(
+                        elevation = if (!isLoading && isCameraOn && hasCameraPermission) 16.dp else 0.dp,
+                        shape = androidx.compose.foundation.shape.CircleShape,
+                        ambientColor = MaterialTheme.colorScheme.primary,
+                        spotColor = MaterialTheme.colorScheme.primary
                     )
-                } else {
-                    Icon(Icons.Filled.CameraAlt, contentDescription = "拍照匹配",
-                        tint = MaterialTheme.colorScheme.onPrimary)
+            ) {
+                FloatingActionButton(
+                    onClick = { if (isCameraOn && hasCameraPermission) takePhotoAndMatch() },
+                    containerColor = if (isLoading) MaterialTheme.colorScheme.secondary
+                    else if (!isCameraOn || !hasCameraPermission) MaterialTheme.colorScheme.surfaceVariant
+                    else MaterialTheme.colorScheme.primary
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Icon(Icons.Filled.CameraAlt, contentDescription = "拍照匹配",
+                            tint = MaterialTheme.colorScheme.onPrimary)
+                    }
                 }
             }
         }
@@ -169,6 +192,8 @@ fun HomeScreen() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .fillMaxHeight(0.45f)
+                    .clip(RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
                     .clipToBounds(),
                 contentAlignment = Alignment.Center
             ) {
@@ -186,7 +211,19 @@ fun HomeScreen() {
                         }
                     }
                 } else {
-                    Text("点击开启摄像头", color = Color.Gray, fontSize = 16.sp)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            Icons.Filled.Videocam,
+                            null,
+                            Modifier.size(40.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Text("点击开启摄像头", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f), fontSize = 14.sp)
+                    }
                 }
 
                 // 摄像头开关按钮
@@ -201,11 +238,17 @@ fun HomeScreen() {
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .padding(12.dp)
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(24.dp))
+                        .size(44.dp)
+                        .shadow(
+                            elevation = if (isCameraOn && hasCameraPermission) 12.dp else 0.dp,
+                            shape = androidx.compose.foundation.shape.CircleShape,
+                            ambientColor = MaterialTheme.colorScheme.primary,
+                            spotColor = MaterialTheme.colorScheme.primary
+                        )
+                        .clip(RoundedCornerShape(22.dp))
                         .background(
-                            if (isCameraOn && hasCameraPermission) Color(0xCC00AA00)
-                            else Color(0xCC555555)
+                            if (isCameraOn && hasCameraPermission) MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
+                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)
                         )
                 ) {
                     Icon(
@@ -237,24 +280,34 @@ fun HomeScreen() {
 
             // ── 模式切换 ──
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 FilterChip(
                     selected = mode == "gesture",
                     onClick = { mode = "gesture" },
-                    label = { Text("👋 手势") }
+                    label = { Text("👋 手势", fontWeight = if (mode == "gesture") FontWeight.SemiBold else FontWeight.Normal) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                        selectedLabelColor = MaterialTheme.colorScheme.primary
+                    )
                 )
                 FilterChip(
                     selected = mode == "expr",
                     onClick = { mode = "expr" },
-                    label = { Text("😀 表情") }
+                    label = { Text("😀 表情", fontWeight = if (mode == "expr") FontWeight.SemiBold else FontWeight.Normal) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                        selectedLabelColor = MaterialTheme.colorScheme.primary
+                    )
                 )
                 Spacer(Modifier.weight(1f))
                 if (isLoading) {
-                    Text("分析中...", style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("分析中…", style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary)
                 }
             }
 
@@ -397,15 +450,24 @@ fun HomeScreen() {
             }
 
             // ── 热门标签 ──
-            Text("热门标签", style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 16.dp))
+            Text(
+                "热门标签",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(horizontal = 16.dp),
+                letterSpacing = 0.5.sp
+            )
             LazyRow(modifier = Modifier.padding(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 val tags = listOf("单手托腮","摊手","捂嘴","手比OK","双手抱头","举手","挠头","大笑","震惊","无语")
                 items(tags) { tag ->
                     SuggestionChip(
                         onClick = { performSearch(tag) },
-                        label = { Text(tag, fontSize = 12.sp) }
+                        label = { Text(tag, fontSize = 12.sp) },
+                        colors = SuggestionChipDefaults.suggestionChipColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
                     )
                 }
             }

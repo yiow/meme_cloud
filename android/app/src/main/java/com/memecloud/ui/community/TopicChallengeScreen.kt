@@ -97,10 +97,11 @@ fun TopicChallengeScreen(onBack: () -> Unit) {
                     }
                 }) { Icon(Icons.Filled.ArrowBack, null) }
             },
+            windowInsets = WindowInsets(0),
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
+                containerColor = MaterialTheme.colorScheme.surface,
+                titleContentColor = MaterialTheme.colorScheme.onSurface,
+                navigationIconContentColor = MaterialTheme.colorScheme.onSurface
             )
         )
 

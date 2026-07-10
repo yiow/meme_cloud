@@ -2,27 +2,33 @@ package com.memecloud.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// 主色调 — 表情包主题：活泼、年轻化
-val Orange500 = Color(0xFFFF6B35)
-val Orange400 = Color(0xFFFF8A5C)
-val Orange300 = Color(0xFFFFB088)
+// ── Cyber / Tech Palette ────────────────────────────────────────────────────
 
-val Purple500 = Color(0xFF7C3AED)
-val Purple400 = Color(0xFF9B6BFF)
+// Primary — electric cyan
+val CyberCyan    = Color(0xFF00E5FF)
+val CyberCyanDim = Color(0xFF00B8D4)
+val CyberCyanContainer = Color(0xFF003544)
 
-val Pink500 = Color(0xFFFF5E8A)
+// Secondary — neon purple
+val NeonPurple      = Color(0xFF7C4DFF)
+val NeonPurpleLight = Color(0xFF9B74FF)
 
-// 深色主题色
-val DarkBackground = Color(0xFF1A1A2E)
-val DarkSurface = Color(0xFF16213E)
-val DarkCard = Color(0xFF0F3460)
+// Tertiary — neon rose
+val NeonRose = Color(0xFFFF5FA0)
 
-// 浅色主题色
-val LightBackground = Color(0xFFF8F9FA)
+// Dark theme surfaces
+val DarkBg      = Color(0xFF07090F)   // near-black navy
+val DarkSurface = Color(0xFF0D1120)   // dark navy surface
+val DarkCard    = Color(0xFF131729)   // card / surface-variant
+val DarkBorder  = Color(0xFF1C2340)   // subtle outline
+
+// Light theme surfaces
+val LightBg      = Color(0xFFF4F7FF)
 val LightSurface = Color(0xFFFFFFFF)
-val LightCard = Color(0xFFF1F3F5)
+val LightCard    = Color(0xFFEBEFFF)
+val LightBorder  = Color(0xFFCDD5FF)
 
-// 语义色
-val Success = Color(0xFF22C55E)
-val Warning = Color(0xFFF59E0B)
-val Error = Color(0xFFEF4444)
+// Semantic
+val SemanticSuccess = Color(0xFF00E676)
+val SemanticWarning = Color(0xFFFFAB00)
+val SemanticError   = Color(0xFFFF3D71)

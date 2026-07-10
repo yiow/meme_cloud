@@ -1,9 +1,11 @@
 package com.memecloud.ui.navigation
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -41,28 +43,44 @@ fun AppNavigation(
     Scaffold(
         bottomBar = {
             if (!hideBottomBar) {
-                NavigationBar {
-                    Screen.bottomTabs.forEach { screen ->
-                        val selected = currentRoute == screen.route
-                        NavigationBarItem(
-                            selected = selected,
-                            onClick = {
-                                if (currentRoute != screen.route) {
-                                    navController.navigate(screen.route) {
-                                        popUpTo(Screen.Home.route) { saveState = true }
-                                        launchSingleTop = true
-                                        restoreState = true
+                Column {
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
+                        thickness = androidx.compose.ui.unit.Dp(0.5f)
+                    )
+                    NavigationBar(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        tonalElevation = 0.dp
+                    ) {
+                        Screen.bottomTabs.forEach { screen ->
+                            val selected = currentRoute == screen.route
+                            NavigationBarItem(
+                                selected = selected,
+                                onClick = {
+                                    if (currentRoute != screen.route) {
+                                        navController.navigate(screen.route) {
+                                            popUpTo(Screen.Home.route) { saveState = true }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
                                     }
-                                }
-                            },
-                            icon = {
-                                Icon(
-                                    if (selected) screen.selectedIcon else screen.unselectedIcon,
-                                    contentDescription = screen.title
+                                },
+                                icon = {
+                                    Icon(
+                                        if (selected) screen.selectedIcon else screen.unselectedIcon,
+                                        contentDescription = screen.title
+                                    )
+                                },
+                                label = { Text(screen.title) },
+                                colors = NavigationBarItemDefaults.colors(
+                                    selectedIconColor   = MaterialTheme.colorScheme.primary,
+                                    selectedTextColor   = MaterialTheme.colorScheme.primary,
+                                    indicatorColor      = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                    unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.42f),
+                                    unselectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.42f)
                                 )
-                            },
-                            label = { Text(screen.title) }
-                        )
+                            )
+                        }
                     }
                 }
             }

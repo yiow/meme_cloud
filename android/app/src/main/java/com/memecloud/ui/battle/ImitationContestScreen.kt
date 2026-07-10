@@ -219,7 +219,10 @@ fun ImitationContestScreen(onBack: () -> Unit) {
 
     Column(modifier = Modifier.fillMaxSize()) {
         // ── 顶栏 ──
-        Surface(color = MaterialTheme.colorScheme.primary) {
+        Surface(
+            color = MaterialTheme.colorScheme.surface,
+            shadowElevation = 0.dp
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -228,10 +231,10 @@ fun ImitationContestScreen(onBack: () -> Unit) {
                     ws?.close(1000, "")
                     onBack()
                 }) {
-                    Icon(Icons.Filled.ArrowBack, null, tint = MaterialTheme.colorScheme.onPrimary)
+                    Icon(Icons.Filled.ArrowBack, null, tint = MaterialTheme.colorScheme.onSurface)
                 }
                 Text("🏆 模仿大赛", fontWeight = FontWeight.Bold, fontSize = 18.sp,
-                    color = MaterialTheme.colorScheme.onPrimary)
+                    color = MaterialTheme.colorScheme.onSurface)
                 if (phase == ContestPhase.PLAYING || phase == ContestPhase.JUDGING) {
                     Spacer(Modifier.width(8.dp))
                     Surface(

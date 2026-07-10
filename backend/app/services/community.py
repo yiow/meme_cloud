@@ -5,7 +5,7 @@ from typing import Any, Optional
 from sqlalchemy import and_, func, select
 from sqlalchemy.orm import Session
 
-from app.models.community import Comment, CommunityPost, Like
+from app.models.community import Comment, CommunityPost, Like, PostCollect
 from app.models.social import Follow
 from app.schemas.community import (
     AuthorBrief,
@@ -85,6 +85,21 @@ def get_feed(
 
     rows = db.execute(base.offset((page - 1) * size).limit(size)).scalars().all()
 
+    # 获取当前用户关注的用户 ID 集合
+    followed_user_ids: set[int] = set()
+    if current_user_id:
+        followed_rows = db.execute(
+            select(Follow.following_id).where(Follow.follower_id == current_user_id)
+        ).scalars().all()
+        followed_user_ids = set(followed_rows)
+    # 当前用户收藏的帖子 ID
+    collected_post_ids: set[int] = set()
+    if current_user_id:
+        collected_rows = db.execute(
+            select(PostCollect.post_id).where(PostCollect.user_id == current_user_id)
+        ).scalars().all()
+        collected_post_ids = set(collected_rows)
+
     items = []
     for post in rows:
         liked = False
@@ -94,6 +109,8 @@ def get_feed(
                     and_(Like.post_id == post.id, Like.user_id == current_user_id)
                 )
             ).scalar_one_or_none() is not None
+        is_followed = post.user_id in followed_user_ids
+        is_collected = post.id in collected_post_ids
         items.append(
             PostBrief(
                 id=post.id,
@@ -105,6 +122,8 @@ def get_feed(
                 like_count=post.like_count,
                 comment_count=post.comment_count,
                 is_liked=liked,
+                is_followed=is_followed,
+                is_collected=is_collected,
                 created_at=post.created_at.isoformat() if post.created_at else "",
             )
         )
@@ -127,6 +146,22 @@ def get_post_detail(db: Session, post_id: int, current_user_id: int = 0) -> Opti
         liked = db.execute(
             select(Like).where(
                 and_(Like.post_id == post_id, Like.user_id == current_user_id)
+            )
+        ).scalar_one_or_none() is not None
+
+    is_followed = False
+    if current_user_id:
+        is_followed = db.execute(
+            select(Follow).where(
+                and_(Follow.follower_id == current_user_id, Follow.following_id == post.user_id)
+            )
+        ).scalar_one_or_none() is not None
+
+    is_collected = False
+    if current_user_id:
+        is_collected = db.execute(
+            select(PostCollect).where(
+                and_(PostCollect.post_id == post_id, PostCollect.user_id == current_user_id)
             )
         ).scalar_one_or_none() is not None
 
@@ -156,6 +191,8 @@ def get_post_detail(db: Session, post_id: int, current_user_id: int = 0) -> Opti
         like_count=post.like_count,
         comment_count=post.comment_count,
         is_liked=liked,
+        is_followed=is_followed,
+        is_collected=is_collected,
         created_at=post.created_at.isoformat() if post.created_at else "",
         comments=comments,
     )
@@ -182,6 +219,61 @@ def toggle_like(db: Session, post_id: int, user_id: int) -> bool:
         post.like_count += 1
         db.commit()
         return True
+
+
+
+
+def toggle_collect(db: Session, post_id: int, user_id: int) -> bool:
+    existing = db.execute(
+        select(PostCollect).where(
+            and_(PostCollect.post_id == post_id, PostCollect.user_id == user_id)
+        )
+    ).scalar_one_or_none()
+
+    if existing:
+        db.delete(existing)
+        db.commit()
+        return False
+    else:
+        db.add(PostCollect(post_id=post_id, user_id=user_id))
+        db.commit()
+        return True
+
+
+def get_collected_posts(db: Session, user_id: int, page: int = 1, size: int = 20) -> PaginatedPosts:
+    total = db.execute(
+        select(func.count()).select_from(PostCollect).where(PostCollect.user_id == user_id)
+    ).scalar() or 0
+
+    rows = db.execute(
+        select(CommunityPost)
+        .join(PostCollect, PostCollect.post_id == CommunityPost.id)
+        .where(PostCollect.user_id == user_id, CommunityPost.is_deleted == False)
+        .order_by(PostCollect.created_at.desc())
+        .offset((page - 1) * size)
+        .limit(size)
+    ).scalars().all()
+
+    items = []
+    for post in rows:
+        items.append(
+            PostBrief(
+                id=post.id,
+                image_url=post.image_url,
+                thumbnail_url=post.thumbnail_url,
+                caption=post.caption,
+                tags=_parse_tags(post.tags),
+                author=_author_brief(post),
+                like_count=post.like_count,
+                comment_count=post.comment_count,
+                is_liked=False,
+                is_followed=False,
+                is_collected=True,
+                created_at=post.created_at.isoformat() if post.created_at else "",
+            )
+        )
+
+    return PaginatedPosts(items=items, page=page, size=size, has_more=page * size < total)
 
 
 def create_comment(db: Session, post_id: int, user_id: int, content: str) -> Comment:

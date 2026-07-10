@@ -45,10 +45,13 @@ class PostBrief(BaseModel):
     like_count: int
     comment_count: int
     is_liked: bool = False
+    is_followed: bool = False
+    is_collected: bool = False
     created_at: str
 
 
 class PostDetail(BaseModel):
+    # Placeholder for second replacement
     id: int
     image_url: str
     thumbnail_url: Optional[str] = None
@@ -58,6 +61,8 @@ class PostDetail(BaseModel):
     like_count: int
     comment_count: int
     is_liked: bool = False
+    is_followed: bool = False
+    is_collected: bool = False
     created_at: str
     comments: list[CommentBrief] = Field(default_factory=list)
 

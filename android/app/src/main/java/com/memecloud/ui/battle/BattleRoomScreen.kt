@@ -84,26 +84,29 @@ fun BattleRoomScreen(roomId: String, roomName: String, onBack: () -> Unit) {
 
     Column(modifier = Modifier.fillMaxSize()) {
         // ── 顶部信息栏 ──
-        Surface(color = MaterialTheme.colorScheme.primary) {
+        Surface(
+            color = MaterialTheme.colorScheme.surface,
+            shadowElevation = 0.dp
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.Filled.ArrowBack, null, tint = MaterialTheme.colorScheme.onPrimary)
+                    Icon(Icons.Filled.ArrowBack, null, tint = MaterialTheme.colorScheme.onSurface)
                 }
                 Column(Modifier.weight(1f)) {
-                    Text(roomName, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary, fontSize = 18.sp)
+                    Text(roomName, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, fontSize = 18.sp)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Filled.Circle, null, Modifier.size(8.dp),
-                            tint = androidx.compose.ui.graphics.Color(0xFF22C55E))
+                            tint = androidx.compose.ui.graphics.Color(0xFF00E676))
                         Spacer(Modifier.width(4.dp))
                         Text("${onlineCount.intValue} 人在线", fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f))
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
                 IconButton(onClick = { }) {
-                    Icon(Icons.Filled.Share, null, tint = MaterialTheme.colorScheme.onPrimary)
+                    Icon(Icons.Filled.Share, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }

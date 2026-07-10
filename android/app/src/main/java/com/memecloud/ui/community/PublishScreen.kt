@@ -20,6 +20,14 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.memecloud.data.model.PostCreateRequest
 import com.memecloud.data.network.RetrofitClient
+import com.memecloud.data.network.toFullUrl
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 
@@ -30,7 +38,8 @@ fun PublishScreen(
     onPublishSuccess: () -> Unit = {}
 ) {
     // 简化版：用 URL 代替真实选图流程（真实场景会用 ActivityResultContracts 拍照/选图）
-    var imageUrl by remember { mutableStateOf("") }
+    var uploadedUrl by remember { mutableStateOf("") }
+    var isUploading by remember { mutableStateOf(false) }
     var caption by remember { mutableStateOf("") }
     var tagInput by remember { mutableStateOf("") }
     var tags by remember { mutableStateOf(listOf<String>()) }
@@ -39,28 +48,58 @@ fun PublishScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val api = remember { RetrofitClient.memeApi }
+    val uploadApi = remember { RetrofitClient.danmakuApi }
+
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri ?: return@rememberLauncherForActivityResult
+        isUploading = true
+        scope.launch {
+            try {
+                val inputStream = context.contentResolver.openInputStream(uri)
+                val bytes = inputStream?.readBytes()
+                inputStream?.close()
+                if (bytes == null) return@launch
+                val requestFile = bytes.toRequestBody("image/*".toMediaTypeOrNull())
+                val filePart = MultipartBody.Part.createFormData("file", "upload.png", requestFile)
+                val descPart = "community_post".toRequestBody("text/plain".toMediaTypeOrNull())
+                val result = uploadApi.uploadEmoji(filePart, descPart)
+                if (result.isSuccess && result.data != null) {
+                    val fileUrl = result.data["file_url"] as? String ?: return@launch
+                    uploadedUrl = fileUrl.toFullUrl()
+                } else {
+                    Toast.makeText(context, "上传失败", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(context, "上传失败", Toast.LENGTH_SHORT).show()
+            } finally {
+                isUploading = false
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("发布表情包") },
+                title = { Text("发布表情包", fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回", tint = MaterialTheme.colorScheme.onSurface)
                     }
                 },
                 actions = {
                     TextButton(
                         onClick = {
-                            if (imageUrl.isBlank()) {
-                                Toast.makeText(context, "请先输入图片URL", Toast.LENGTH_SHORT).show()
+                            if (uploadedUrl.isBlank()) {
+                                Toast.makeText(context, "请先选择图片", Toast.LENGTH_SHORT).show()
                                 return@TextButton
                             }
                             isPublishing = true
                             scope.launch {
                                 try {
                                     val req = PostCreateRequest(
-                                        imageUrl = imageUrl.trim(),
+                                        imageUrl = uploadedUrl,
                                         caption = caption.trim().ifBlank { null },
                                         tags = tags
                                     )
@@ -81,13 +120,14 @@ fun PublishScreen(
                         },
                         enabled = !isPublishing
                     ) {
-                        Text("发布", color = MaterialTheme.colorScheme.onPrimary)
+                        Text("发布", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
                     }
                 },
+                windowInsets = WindowInsets(0),
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface
                 )
             )
         }
@@ -100,38 +140,40 @@ fun PublishScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 图片预览区
+            // 图片选择区
             Text("图片", fontWeight = FontWeight.Bold, fontSize = 16.sp)
 
-            OutlinedTextField(
-                value = imageUrl,
-                onValueChange = { imageUrl = it },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("输入表情包图片URL") },
-                singleLine = true
-            )
-
-            if (imageUrl.isNotBlank()) {
-                AsyncImage(
-                    model = imageUrl,
-                    contentDescription = "预览",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(260.dp),
-                    contentScale = ContentScale.Fit
-                )
-            } else {
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .height(180.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        Icons.Filled.AddPhotoAlternate, null,
-                        Modifier.size(48.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(220.dp)
+                    .clickable { galleryLauncher.launch("image/*") },
+                contentAlignment = Alignment.Center
+            ) {
+                if (isUploading) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator()
+                        Spacer(Modifier.height(8.dp))
+                        Text("上传中...", fontSize = 14.sp)
+                    }
+                } else if (uploadedUrl.isNotBlank()) {
+                    AsyncImage(
+                        model = uploadedUrl,
+                        contentDescription = "预览",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(240.dp),
+                        contentScale = ContentScale.Fit
                     )
+                } else {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Filled.AddPhotoAlternate, null,
+                            Modifier.size(48.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                        Spacer(Modifier.height(8.dp))
+                        Text("点击选择图片", fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
             }
 
